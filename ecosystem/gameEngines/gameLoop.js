@@ -26,7 +26,7 @@ class MainGame{
 				}
 				this.script=script;
 			}
-			attachLayer(layer,layer_i){
+			attachLayer(layer=this.layer,layer_i){//attach to layer
 				if(typeof layer_i=="number"&&layer_i!=NaN){
 					layer.list[layer_i]=this;
 				}
@@ -35,15 +35,14 @@ class MainGame{
 				}
 
 			}
-			detachLayer(){
-				this.isDeleting=true;
+			detachLayer(){//detatch from Layer
+				this.isDeleting=true;//detatching is done by the UpdateLayer
 			}
 			isThisDeleting(layer,layer_i){
 				return this.isDeleting;//||this.layer!=layer;
 			}
 			onUpdate(layer,layer_i){
 				this.script(layer,layer_i);
-
 			}
 		}
 		this.UpdateLayer=class{
@@ -124,7 +123,6 @@ Space={
 			if(layer !=undefined){
 				this.attachLayer(layer);
 			}
-			this.script=script;
 		}
 		attachLayer(layer){
 			this.id=layer.list.length;
