@@ -10,7 +10,7 @@
 		for (let i = 0; i < 10; i++) {
 			mainGame.layers.update.list[i]=new mainGame.UpdateLayer();
 		}
-		for (let i = 0; i < 6; i++) {
+		for (let i = 0; i < 10; i++) {
 			mainGame.layers.physics.list[i]=new mainGame.UpdateLayer();
 		}
 		for (let i = 0; i < 10; i++) {
@@ -32,10 +32,10 @@
 		let sprite={
 
 		};
-		sprite.update=new mainGame.UpdateScript(sprite,layers.update[4],undefined,function(layer,layer_i){
+		sprite.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(layer,layer_i){
 			const s=this.sprite;
 		})
-		sprite.draw=new mainGame.UpdateScript(sprite,layers.draw[4],undefined,function(layer,layer_i){
+		sprite.draw=new mainGame.UpdateScript(sprite,layers.draw.list[4],undefined,function(layer,layer_i){
 			const s=this.sprite;
 
 		})
@@ -186,6 +186,7 @@
 					this.Physics.minObj=minObj;
 					this.Physics.minCTime=minCTime;
 					this.Physics.isColliding=this.Physics.minObj!=null&&this.Physics.minCTime<1;
+					this.Physics.minCTime=Math.clamp(0,1,this.Physics.minCTime);
 				}),
 				update2:new mainGame.UpdateScript(this,layers.physics.list[3],undefined,()=>{
 					//phisics layer 2: do collisions
@@ -223,8 +224,8 @@
 				}),
 				update3:new mainGame.UpdateScript(this,layers.physics.list[4],undefined,()=>{
 					this.velocity=[this.Physics.newVelocity[0],this.Physics.newVelocity[1]];
-					this.coords[0]+=this.velocity[0];
-					this.coords[1]+=this.velocity[1];
+					this.coords[0]+=this.velocity[0]*this.Physics.minCTime;
+					this.coords[1]+=this.velocity[1]*this.Physics.minCTime;
 				}),
 				attatchLayer:function(){
 					for(let i=0;i<this.scripts.length;i++){
@@ -247,12 +248,56 @@
 	let player=(()=>{//6:30
 		let sprite={};
 		sprite.body=Collider.call(new Space.Entity(sprite,firstPlane),firstPlane).addPhysics().addDrawing();
-		sprite.body.update=new mainGame.UpdateScript(sprite,layers.update,undefined,()=>{
-
+		sprite.body.coords=[300,100];
+		sprite.speed=200;
+		sprite.body.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(){
+			const sprite=this.sprite;
+			const body=this.sprite.body;
+			let moveIputs=[
+				1*((Inputs.getKey("d").down||Inputs.getKey("ArrowRight").down)-(Inputs.getKey("a").down||Inputs.getKey("ArrowLeft").down)),
+				1*((Inputs.getKey("s").down||Inputs.getKey("ArrowDown").down)-(Inputs.getKey("w").down||Inputs.getKey("ArrowUp").down)),
+			];
+			let moveVec=Math.lerpT2(body.velocity,Math.scaleVec2(moveIputs,sprite.speed*mainGame.time.delta),0.999,mainGame.time.delta);//Math.len2(this.velocity)
+			body.velocity=Clone(moveVec);
 		});
-		sprite.hand=Collider.call({
-
-		})
+		sprite.body.hand=Collider.call({
+			joinedTo:sprite.body,
+			relCoords:[1,0],
+			distFromBody:20,
+			jointUpdate:new mainGame.UpdateScript(sprite,layers.physics.list[6],undefined,function(){
+				const part=this.sprite.body.hand;
+				const body=this.sprite.body;
+				let mousePos=Math.minusVec2(Inputs.mouse.vec2,[Draw.width/2,Draw.height/2]);
+				if(Math.len2(mousePos)>0){
+					part.relCoords=Math.scaleVec2(mousePos,part.distFromBody/Math.len2(mousePos))
+				}
+				part.coords=Math.addVec2(body.coords,part.relCoords);
+				for (var i = 0; i < part.objsInHitbox.length; i++) {
+					if(part.objsInHitbox[i] ==body){part.objsInHitbox.splice(i,1);i--}
+				}
+				if(part.objsInHitbox.length>0){
+					part.colour="#BB88556F";
+				}
+				else{
+					part.colour="#00FF88";
+				}
+			}),
+		},firstPlane).addDrawing().addDetector();
+		sprite.body.hand.Drawing.detachLayer();
+		mainGame.mainLayers.draw.onUpdate();
+		sprite.body.hand.Drawing.attachLayer(layers.draw.list[7]);
+		sprite.body.hand.relCoords=[sprite.body.hand.distFromBody,0];
+		sprite.body.hand.coords=Math.addVec2(sprite.body.coords,sprite.body.hand.relCoords);
+		sprite.Camra={
+			ScriptA:new mainGame.UpdateScript(sprite,layers.draw.list[2],undefined,function(){
+				Draw.undoTransform(sprite.body.matrixPos);
+				ctx.translate(Draw.width/2-sprite.body.coords[0],Draw.height/2-sprite.body.coords[1]);
+			}),
+			ScriptB:new mainGame.UpdateScript(sprite,layers.draw.list[9],undefined,function(){
+				ctx.translate(sprite.body.coords[0]-Draw.width/2,sprite.body.coords[1]-Draw.height/2);
+				Draw.transform(sprite.body.matrixPos);
+			}),
+		}
 	})();
 	let sprite1=(()=>{
 		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addPhysics(firstPlane).addDrawing();

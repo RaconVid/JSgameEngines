@@ -176,9 +176,9 @@ class IOEngine{
 					},
 				};
 				let functions={
-					mousemove:(event)=>{
-						this.mouse.x=event.clientX;
-						this.mouse.y=event.clientY;
+					mousemove:(event)=>{alert
+						this.mouse.x=event.clientX/Draw.scale;
+						this.mouse.y=event.clientY/Draw.scale;
 					},
 					mousedown:(event)=>{
 						this.mouse.down=true;
