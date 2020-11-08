@@ -161,6 +161,3 @@
 		}
 	};
 }
-{//matrix
-	//Math.invertMat
-}

@@ -1,26 +1,3 @@
 to do
-chunks.js - make: (raymarching,physics and space) engines
+chunks.js - add to index.html
 eco.js
-
-
-arrays:{
-	ordered:
-	id:
-
-}
-phase:{
-	add
-}
-
-new sprite;
-addTo updates;
-addTo draw;
-add collider::circle;
-add PlayerControls;
-joystick -> movement; V^1= joystick;
-this.Movement/physics=()=>{
-	Get Objs;
-	foreach Obj
-	get distVec();//returns {isInHitBox,dist,dist A->B vec,
-
-}
