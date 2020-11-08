@@ -13,7 +13,7 @@ class Sprite{
 	static setParent(parent){
 		spriteParent=parent;
 	}
-	constructor({parent=spriteParent,start=false,run=()=>{},update=0,draw=0}){
+	constructor({parent=spriteParent,start=false,run=()=>{},updateLayers={}}){
 		this.DrawSprite=function(){};//draws this Sprite
 		this.Start=function(){};
 		this.Update=function(){};
@@ -28,9 +28,7 @@ class Sprite{
 
 			},
 		};
-		this.pos=new Position({});//coods,rotation
 		this.parent=parent;//parent=maingame (normaly);
-		this.coords=this.pos.coords;
 		try{
 			this.time=parent.time;
 			this.time.real;
@@ -38,10 +36,6 @@ class Sprite{
 		catch(error){
 			this.time=new Time();
 		}
-		this.hasDrawVal=false;
-		this.hasUpdateVal=false;
-		this.hasUpdate=update;//layer
-		this.hasDraw=draw;//layer
 		this.id=this.parent.addId(this);
 		run(this);
 		if(start)this.Start();

@@ -25,24 +25,11 @@
 		c[axisB] = coords[axisB]*Math.cos(angle)+carry*Math.sin(angle);
 		return(c);
 	}
-	Math.timesMat=function(a,b){
-		let c=[];
-		for(let i=0;i<coords.length;i++){
-			c.push(coords[i]);
+	Math.timesMat=function(a,b){//unfinnished
+		let ans=[];
+		for (let i = 0; i < b.length; i++) {
+			a[i]
 		}
-		var carry = coords[axisA];
-		c[axisA] = coords[axisA]*Math.cos(angle)-coords[axisB]*Math.sin(angle);
-		c[axisB] = coords[axisB]*Math.cos(angle)+carry*Math.sin(angle);
-		return(c);
-	}
-	Math.timesMat=function(a,b){
-		let c=[];
-		for(let i=0;i<coords.length;i++){
-			c.push(coords[i]);
-		}
-		var carry = coords[axisA];
-		c[axisA] = coords[axisA]*Math.cos(angle)-coords[axisB]*Math.sin(angle);
-		c[axisB] = coords[axisB]*Math.cos(angle)+carry*Math.sin(angle);
 		return(c);
 	}
 }
@@ -162,5 +149,57 @@
 	};
 }
 {//matrix
-	//Math.invertMat
+	Math.transform=function(matA,matB){//A by B (matrix); boths lengths >0
+		let ans=[];
+		for (let i = 0; i < matA.length; i++) {
+			ans[i]=[];
+			for (let j = 0; j < matB[0].length; j++) {
+				ans[i][j]=0;
+				for (let k = 0; k < matA[0].length; k++) {
+					ans[i][j]+=matB[i][j];
+				}
+			}
+			ans[1][i]=Amatrix_vec+Bmatrix_vec;
+		}
+		return ans;
+	}
+	Math.undotransform=function(matA,matB){//A by B (matrix); boths lengths >0
+		let ans=[];
+		for (let i = 0; i < matA.length; i++) {
+			ans[i]=[];
+			for (let j = 0; j < matB[0].length; j++) {
+				ans[i][j]=0;
+				for (let k = 0; k < matA[0].length; k++) {
+					ans[i][j]+=matB[i][j];
+				}
+			}
+			ans[1][i]=Amatrix_vec+Bmatrix_vec;
+		}
+		return ans;
+	}
+	Math.timesMatrix=function(matA,matB){//A by B (matrix); boths lengths >0
+		let ans=[];
+		for (let i = 0; i < matA.length; i++) {
+			ans[i]=[];
+			for (let j = 0; j < matB[0].length; j++) {
+				ans[i][j]=0;
+				for (let k = 0; k < matA[0].length; k++) {
+					ans[i][j]+=matB[i][j];
+				}
+			}
+			ans[1][i]=Amatrix_vec+Bmatrix_vec;
+		}
+		return ans;
+	}
+	//UNFINNISHED
+	Math.inverseMatrix=function(matA){//A by B (matrix); boths lengths >0
+		if(matrixA.length==2&&matrixA[0].length==2){
+			return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]]];
+		}
+		if(matrixA.length==3&&matrixA[0].length==2){
+			return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]],[]];
+		}
+	}
+	Math.Matrix_minors=function(matA){//A by B (matrix); boths lengths >0
+	}
 }

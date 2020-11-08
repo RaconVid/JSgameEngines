@@ -1,113 +1,100 @@
-(function(){
-	let parent=new MainGame();
-	Sprite.setParent(parent);
-	class Pos extends Position{
-		constructor(pos){
-			super(pos);
-			let len=this.coords.length;
-			this.velocity=new Array(len,0);
-			this.acceleration=new Array(len,0);
+(function(){//4:22 -> 4:34 -> 
+	//WORK DAM IT
+	mainGame=new MainGame();
+	(()=>{//set up MainGame();
+		mainGame.layers={
+			update:mainGame.mainLayers.update,
+			physics:new mainGame.UpdateLayer(),
+			draw:mainGame.mainLayers.draw,
 		}
+		for (let i = 0; i < 10; i++) {
+			mainGame.layers.update.list[i]=new mainGame.UpdateLayer();
+		}
+		for (let i = 0; i < 10; i++) {
+			mainGame.layers.physics.list[i]=new mainGame.UpdateLayer();
+		}
+		for (let i = 0; i < 10; i++) {
+			mainGame.layers.draw.list[i]=new mainGame.UpdateLayer();
+		}
+		mainGame.updateOrder=[
+			mainGame.layers.update,
+			mainGame.layers.physics,
+			mainGame.layers.draw,
+		];
+		let layers=mainGame.layers;
+	})();
+	const layers=mainGame.layers;
+	let mySprite=(()=>{
+		let sprite={
+
+		};
+		sprite.update=new mainGame.UpdateScript(sprite,layers.update[4],undefined,function(layer,layer_i){
+			const s=this.sprite;
+		})
+		sprite.draw=new mainGame.UpdateScript(sprite,layers.draw[4],undefined,function(layer,layer_i){
+			const s=this.sprite;
+
+		})
+		return sprite;
+	})();
+	let firstPlane={
+		list:[
+		],
 	};
- 	class Creature extends Sprite{
- 		constructor({pos=new Pos({}),type="",radius=10,coords,velocity}){
-			super({start:true,update:0,draw:0});
-			this.pos=pos;
-			if(coords!=undefined){
-				this.pos.coords=coords;
-			}
-			if(velocity!=undefined){
-				this.pos.velocity=velocity;
-			}
-			this.type=type;
-			this.radius=radius;
+	function Collider(layer){
+		this.keywords={
+			all:1,
+		};
+		this.type={
+			shape:"circle"
 		}
-		//get velocity(){return this.pos.velocity;}
-		//set velocity(val){this.pos.velocity=val;}
-		//get coords(){return this.pos.coords;}
-		//set coords(val){this.pos.coords=val;}
- 	}
-	class BasicChemical extends Creature{
-		constructor(creature){
-			super(creature);
-			this.DrawSprite=function(){
-				this.moveCanvasToSprite();
-				Draw.circle(0,0,this.radius,"blue");
-				this.unmoveCanvasToSprite();
-			}
-			this.Update=function(){
-				let dt=this.time.delta;
-				this.pos.velocity=Math.scaleVec2(this.pos.velocity,1/Math.pow(100,dt))
-				this.pos.coords=Math.addVec2(this.pos.coords,Math.scaleVec2(this.pos.velocity,dt));
-				this.pos.coords=[
-					(this.pos.coords[0]+Draw.width)%Draw.width,
-					(this.pos.coords[1]+Draw.height)%Draw.height
-				];
-				this.processWalls();
-			}
-			this.processWalls=function(){
-				let len,sprite;
-				let c=Math.addVec2(this.pos.coords,Math.scaleVec2(this.pos.velocity,this.time.delta));
-				let objs={};
-				for (let i in this.parent.sprites) {
-					sprite=this.parent.sprites[i];
-					if(sprite instanceof Creature&&sprite!=this){
-						if(sprite.type in objs){
-							objs[sprite.type].push(sprite);
-						}else{
+		this.colour="#00FF88";
+		this.size=10;
+		this.coords=[0,0];
+		this.velocity=[0,0];
+		this.matrixPos=[[1,0],[0,1],this.coords];//[rotation,coords]
+		
+		this.drawCollider=()=>{
+			Draw.transform(this.matrixPos);
+			Draw.circle(0,0,this.size,this.colour);
+			Draw.undoTransform(this.matrixPos);
+		}
 
-						}
-						let dif=Math.minusVec2(c,Math.addVec2(sprite.pos.coords,Math.scaleVec2(sprite.pos.velocity,sprite.time.delta)));
-						len=Math.len2(dif);
-						if(len<this.radius+sprite.radius){
-							let avgVel=Math.scaleVec2(Math.addVec2(this.pos.velocity,sprite.pos.velocity),0.5);
-							let ang=Math.getAngle(dif,0,1);
-
-							let vel2=Math.rotate(Math.minusVec2(this.pos.velocity,avgVel),-ang,0,1);
-							vel2[0]=Math.abs(vel2[0]);
-							vel2=Math.rotate(vel2,ang,0,1);
-							this.pos.velocity=Math.addVec2(vel2,avgVel);
-
-							vel2=Math.rotate(Math.minusVec2(sprite.pos.velocity,avgVel),-ang,0,1);
-							vel2[0]=-Math.abs(vel2[0]);
-							vel2=Math.rotate(vel2,ang,0,1);
-							sprite.pos.velocity=Math.addVec2(vel2,avgVel);
-						}
+		this.layer=layer;
+		this.layer.list.push(this);
+		this.physicsCollider=()=>{
+			let minDist=Infinity;
+			let minObj=null;
+			for(let i=0;i<this.layer.list.length;i++){
+				let obj=this.layer.list[i];
+				if(obj==this)continue;
+				if(obj.type!=undefined)if(obj.type.shape!=undefined){
+					switch(obj.type.shape){
+						case "circle":
+							let normal=[Math.minusVec2(obj.coords,this.coords),Math.minusVec2(obj.velocity,this.velocity)];
+							let angles=[];
+							let sizeSum=this.size+obj.size;
+							angles.push(Math.getAngle(normal[1],0,1));
+							normal=[Math.rotate(normal[0],-angles[0],0,1),Math.rotate(normal[1],-angles[0],0,1)];
+							normal=[Math.scaleVec2(normal[0],1/normal[1][0]),Math.scaleVec2(normal[1],1/normal[1][0])];
+							if(normal[0][1]>)
 					}
 				}
-				
 			}
-			this.Start=function(){
-			}
-			this.Start();
 		}
 	}
-
-	new Player({start:false,run:(sprite)=>{
-		sprite.pos=new Pos(sprite.pos);
-		sprite.Update=function(){
-			this.getInputs();
-			const dt=this.time.delta;
-			let speed=300;
-			this.pos.velocity=Math.lerpT2(this.pos.velocity,Math.scaleVec2(this.Inputs.joystick1,speed),0.9999,dt);
-			this.pos.coords=Math.addVec2(this.pos.coords,Math.scaleVec2(this.pos.velocity,dt));
-			this.pos.coords=[
-				(this.pos.coords[0]+Draw.width)%Draw.width,
-				(this.pos.coords[1]+Draw.height)%Draw.height
-			];
+	let sprite1=(()=>{
+		let sprite={
+			hitbox:{},
 		};
-		sprite.Start=function(){
-			this.pos.coords=[Draw.width/2,Draw.height/2];
-		};
-		(new Creature({pos:sprite.pos,type:"player",radius:10}));
-
-		sprite.type="player";
-		sprite.name="player1"
-		sprite.Start();
-	}})
-	for (var i = 0; i < 400; i++) {
-		new BasicChemical({radius:10+0*Math.round(Math.random()*0.7),coords:[Math.random()*Draw.width,Math.random()*Draw.height],velocity:Math.scaleVec2(Math.rotate([0,0],Math.random()*Math.PI*4,0,1),30)})
-	}
-
-	parent.start()
+		Collider.call(sprite,firstPlane);
+		sprite.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(layer,layer_i){
+			const s=this.sprite;
+			Inputs.getKey("w").down;
+		})
+		sprite.draw=new mainGame.UpdateScript(sprite,layers.draw.list[4],undefined,sprite.drawCollider);
+		console.log(sprite)
+		return sprite;
+	})();
+	mainGame.start();
 })()
