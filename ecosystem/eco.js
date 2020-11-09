@@ -147,9 +147,10 @@
 						let obj=this.layer.list[i];
 						if(obj==this)continue;
 						if(obj.type!=undefined)if(obj.type.shape!=undefined)if(obj.type.physical!=undefined){
+							let normal,obj_dist,obj_time,normal2;
 							switch(obj.type.shape){
-								case "circle":
-									let normal;{
+								case "circleOld":
+									normal;{
 										normal=[Math.minusVec2(obj.coords,this.coords),Math.minusVec2(obj.velocity,this.velocity)];
 										//normal=[coords,velocity]
 										let angles=[];
@@ -157,8 +158,8 @@
 										normal=[Math.rotate(normal[0],-angles[0],0,1),Math.rotate(normal[1],-angles[0],0,1)];
 									}
 
-									let obj_dist;
-									let obj_time;{
+									obj_dist;
+									obj_time;{
 										let sizeSum=this.size+obj.size;
 										if(normal[0][1]>sizeSum){
 
@@ -179,6 +180,64 @@
 										minCTime=obj_time;
 									}
 								break;
+								case "circle":
+									normal;{
+										normal=[Math.minusVec2(this.coords,obj.coords),Clone(this.velocity)];
+										//normal=[coords,velocity]
+										let angles=[];
+										angles.push(Math.getAngle(obj.velocity,0,1));
+										normal=[Math.rotate(normal[0],-angles[0],0,1),Math.rotate(normal[1],-angles[0],0,1)];
+									}
+									sizeSum=this.size+obj.size;
+									obj_dist;
+									obj_time;
+									normal2=[//ranges= [xRange,yRange] in time(rectangle DE);
+										normal[0][0]*normal[1][0]!=0?[//xRange
+											(sizeSum+normal[0][0])/normal[1][0],
+											(-sizeSum+normal[0][0])/normal[1][0],
+										]:[
+											Math.abs(normal[0][0])-sizeSum<0?Infinity:0,
+											Math.abs(normal[0][0])-sizeSum<0?-Infinity:0,
+										],
+										normal[0][1]*normal[1][1]!=0?[//yRange
+											(sizeSum+normal[0][1])/normal[1][1],
+											(-sizeSum+normal[0][1])/normal[1][1],
+										]:[
+											Math.abs(normal[0][1])-sizeSum<0?Infinity:0,
+											Math.abs(normal[0][1])-sizeSum<0?-Infinity:0,
+										],
+									];
+									normal2[0]=[
+										Math.min(
+											Math.max(normal2[0][0],normal2[0][1]),
+											Math.max(normal2[1][0],normal2[1][1])
+										),
+										Math.max(
+											Math.min(normal2[0][0],normal2[0][1]),
+											Math.min(normal2[1][0],normal2[1][1])
+										),
+									];
+									if(normal2[0][0]>normal2[0][1]){//if maxS>minS
+										obj_time=normal2[0][0];
+									}else{
+										obj_time=Infinity;
+									}
+									/*if(normal[1][1]*normal[0][1]<0){//moving towards it
+										obj_dist=0;//Math.abs(normal[0][1])-sizeSum;
+										obj_time=Math.min((sizeSum-normal[0][1])/normal[1][1],(-sizeSum-normal[0][1])/normal[1][1]);
+									}else{//moving away or not moving
+										obj_dist=Math.abs(normal[0][1])-sizeSum;
+										obj_time=obj_dist>=0?Infinity:0;
+										if(obj_time==0)alert(normal)
+									}*/
+									//x=-c/m y=0;
+									//y=(s-c)/m=mx+c
+									if(obj_time<minCTime&&obj_time>=0){
+										minObj=obj;
+										minDist=Math.min(minDist,obj_dist);
+										minCTime=obj_time;
+									}
+								break;
 								default:
 							}
 						}
@@ -193,7 +252,7 @@
 					if(this.Physics.isColliding){
 						let obj=this.Physics.minObj;
 						switch(obj.type.shape){
-							case "circle"://alert(this.Physics.minCTime)
+							case "circle"://console.log();alert(this.Physics.minCTime)
 								let normal;let angles=[];{//,Math.scaleVec2(Math.addVec2(this.velocity,obj.velocity),0.5)
 									normal=[Math.minusVec2(this.coords,obj.coords),Math.minusVec2(this.velocity,obj.velocity)];
 									normal[0]=Math.addVec2(normal[0],Math.scaleVec2(normal[1],this.Physics.minCTime));
@@ -205,7 +264,6 @@
 									normal[1][0]=Math.abs(normal[1][0]);
 								}
 								else if(obj.mass!=this.mass){
-									
 									normal[1][0]=normal[1][0]/Math.sqrt(this.mass)+Math.abs(normal[1][0])/Math.sqrt(this.mass/obj.mass)
 									//e=u^2m/2 = a^2m=b^2n => a=u/R2 
 								}
@@ -247,7 +305,7 @@
 	}
 	let player=(()=>{//6:30
 		let sprite={};
-		sprite.body=Collider.call(new Space.Entity(sprite,firstPlane),firstPlane).addPhysics().addDrawing();
+		sprite.body=Collider.call(new Space.Entity(sprite,firstPlane),firstPlane).addDrawing().addPhysics();
 		sprite.body.coords=[300,100];
 		sprite.speed=200;
 		sprite.body.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(){
@@ -300,23 +358,23 @@
 		}
 	})();
 	let sprite1=(()=>{
-		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addPhysics(firstPlane).addDrawing();
+		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addDrawing().addPhysics(firstPlane);
 		sprite.coords=[300,200];
 		sprite.velocity=[0,0];
 		sprite.colour="#00FF88";
 		return sprite;
 	})();
 	let sprite2=(()=>{
-		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addPhysics(firstPlane).addDrawing();
+		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addDrawing().addPhysics(firstPlane);
 		sprite.coords=[350,199.99];
 		sprite.velocity=[-0,0];
 		sprite.colour="#00FF88";
 		return sprite;
 	})();
 	let sprite3=(()=>{
-		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addPhysics(firstPlane).addDrawing();
+		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addDrawing().addPhysics(firstPlane);
 		sprite.coords=[400,201];
-		let KEnergy=2;
+		let KEnergy=20;
 		sprite.mass=10;
 		sprite.velocity=[-Math.sqrt(KEnergy*2/sprite.mass),0];
 		sprite.colour="#00FF88";
