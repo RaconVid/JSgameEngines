@@ -35,7 +35,7 @@ class MainGame{
 				}
 
 			}
-			detachLayer(){//detatch from Layer
+			detatchLayer(){//detatch from Layer
 				this.isDeleting=true;//detatching is done by the UpdateLayer
 			}
 			isThisDeleting(layer,layer_i){
