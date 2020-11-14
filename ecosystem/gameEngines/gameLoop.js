@@ -35,7 +35,7 @@ class MainGame{
 				}
 
 			}
-			detatchLayer(){//detatch from Layer
+			detachLayer(){//detatch from Layer
 				this.isDeleting=true;//detatching is done by the UpdateLayer
 			}
 			isThisDeleting(layer,layer_i){
@@ -114,33 +114,3 @@ class MainGame{
 		});
 	}	
 };
-Space={
-	Entity:class{
-		constructor(sprite=null,layer=undefined){
-			this.id=NaN;
-			this.sprite=sprite;
-			this.layer=layer;
-			if(layer !=undefined){
-				this.attachLayer(layer);
-			}
-		}
-		attachLayer(layer){
-			this.id=layer.list.length;
-			layer.list.push(this);
-		}
-		detachLayer(){
-			if(this.id==NaN)return false;
-			if(layer.list.length>1){
-				layer.list[this.id]=layer.list.pop();
-				layer.list[this.id].id=this.id;
-			}
-			this.id=NaN;
-		}
-	},
-	Layer:class{
-		constructor(list=[]){
-			this.onUpdate=onUpdate;
-			this.list=list;
-		}
-	}
-}
