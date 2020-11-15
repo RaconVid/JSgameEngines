@@ -17,7 +17,7 @@ class MainGame{
 	}
 	construct_Classes(){
 		this.UpdateScript=class{
-			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){}){//i.e. parent,UpdateLayer
+			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
 				this.isDeleting=false;
 				this.sprite=sprite;
 				this.layer=layer;
@@ -25,6 +25,8 @@ class MainGame{
 					this.attachLayer(layer,layer_i);
 				}
 				this.script=script;
+				//add datachable
+				if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
 			}
 			attachLayer(layer=this.layer,layer_i){//attach to layer
 				if(typeof layer_i=="number"&&layer_i!=NaN){
@@ -35,8 +37,14 @@ class MainGame{
 				}
 
 			}
-			detachLayer(){//detatch from Layer
-				this.isDeleting=true;//detatching is done by the UpdateLayer
+			detachLayer(){//detach from Layer
+				this.isDeleting=true;//detaching is done by the UpdateLayer
+			}
+			attachScripts(){
+				this.attachLayer();
+			}
+			detachScripts(){
+				this.detachLayer();
 			}
 			isThisDeleting(layer,layer_i){
 				return this.isDeleting;//||this.layer!=layer;
@@ -92,7 +100,7 @@ class MainGame{
 					this.updateOrder[i].onUpdate();
 				}
 				if(!this.endLoop){
-					window.cancelAnimationFrame(this.loop);
+					//window.cancelAnimationFrame(this.loop);
 					this.loop=window.requestAnimationFrame(this.mainLoop);
 				}
 			}

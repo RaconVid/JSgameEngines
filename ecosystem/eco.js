@@ -47,20 +47,27 @@
 	};
 	
 	let player=(()=>{//6:30
-		let sprite={};
-		sprite.body=Collider.call(new Space.Entity(sprite,firstPlane),firstPlane).addDrawing().addPhysics();
+		let sprite=Detachable.call({});
+		sprite.body=Collider.call(Detachable.call(new Space.Entity(sprite,firstPlane),1),firstPlane).addDrawing().addPhysics();
 		sprite.body.coords=[300,100];
 		sprite.speed=200;
 		sprite.body.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(){
 			const sprite=this.sprite;
 			const body=this.sprite.body;
-			let moveIputs=[
-				1*((Inputs.getKey("d").down||Inputs.getKey("ArrowRight").down)-(Inputs.getKey("a").down||Inputs.getKey("ArrowLeft").down)),
-				1*((Inputs.getKey("s").down||Inputs.getKey("ArrowDown").down)-(Inputs.getKey("w").down||Inputs.getKey("ArrowUp").down)),
-			];
-			let moveVec=Math.lerpT2(body.velocity,Math.scaleVec2(moveIputs,sprite.speed*mainGame.time.delta),0.999,mainGame.time.delta);//Math.len2(this.velocity)
-			body.velocity=Clone(moveVec);
-		});
+			if(Inputs.getKey("4").onDown){//die
+				Inputs.keys["4"].onDown=false;
+				sprite.detachScripts();
+			}
+			//movement
+				let moveIputs=[
+					1*((Inputs.getKey("d").down||Inputs.getKey("ArrowRight").down)-(Inputs.getKey("a").down||Inputs.getKey("ArrowLeft").down)),
+					1*((Inputs.getKey("s").down||Inputs.getKey("ArrowDown").down)-(Inputs.getKey("w").down||Inputs.getKey("ArrowUp").down)),
+				];
+				let moveVec=Math.lerpT2(body.velocity,Math.scaleVec2(moveIputs,sprite.speed*mainGame.time.delta),0.999,mainGame.time.delta);//Math.len2(this.velocity)
+				body.velocity=Clone(moveVec);
+			//-------
+		},1);
+		sprite.updateScriptList.push(sprite.body);
 		sprite.body.hand=Collider.call({
 			joinedTo:sprite.body,
 			relCoords:[1,0],
@@ -104,14 +111,27 @@
 							if("physical" in obj.type)if(obj.Physics.movable!==false){//console.log(obj);alert();
 								let dif=Math.dif2(part.coords,obj.coords);
 								const force=0.3;
-								dif=Math.addVec2(Math.scaleVec2(dif,0.6),body.velocity);
-								obj.velocity=Math.lerp2(obj.velocity,dif,force/obj.mass,mainGame.time.delta);
+								let difA=Math.addVec2(Math.scaleVec2(dif, 0.6),body.velocity);
+								let difB=Math.addVec2(Math.scaleVec2(dif,-0.6),obj.velocity);
+								obj.velocity=Math.lerp2(obj.velocity,difA,force/obj.mass,mainGame.time.delta);
+								body.velocity=Math.lerp2(body.velocity,difB,force/body.mass,mainGame.time.delta);
 							}
 						}
 					}
 				}
 			}),
+			onRemoveVars:{//undo things
+				sprite:sprite,
+				detachScripts:function(){
+					const part=this.sprite.body.hand;
+					if(part.holdingCreature!=null){//detach held creature
+						part.holdingCreature.colour=part.col;
+						part.holdingCreature=null;
+					}
+				},
+			}
 		},firstPlane).addDrawing().addDetector();
+		const hand=sprite.body.hand;
 		((updateObj)=>{
 			let i=0;
 			for (;i<updateObj.layer.list.length; i++) {
@@ -119,9 +139,9 @@
 			}
 			updateObj.layer.list.splice(i,1);
 
-		})(sprite.body.hand.Drawing)
-		//sprite.body.hand.Drawing.detachLayer();
-		//mainGame.mainLayers.draw.onUpdate();
+		})(sprite.body.hand.Drawing);
+		hand.updateScriptList.push(hand.jointUpdate,hand.onRemoveVars);
+		sprite.body.updateScriptList.push(sprite.body.hand,sprite.body.update);
 		sprite.body.hand.Drawing.attachLayer(layers.draw.list[7]);
 		sprite.body.hand.size=8;
 		sprite.body.hand.relCoords=[sprite.body.hand.distFromBody,0];

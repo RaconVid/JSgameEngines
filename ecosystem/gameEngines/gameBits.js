@@ -1,6 +1,7 @@
 Space={
 	Entity:class{
 		constructor(sprite=null,layer=undefined){
+			//Detachable.call(this);
 			this.id=NaN;
 			this.sprite=sprite;
 			this.layer=layer;
@@ -8,11 +9,17 @@ Space={
 				this.attachLayer(layer);
 			}
 		}
-		attachLayer(layer){
+		attachScripts(){
+			this.attachLayer();
+		}
+		detachScripts(){
+			this.detachLayer();
+		}
+		attachLayer(layer=this.layer){
 			this.id=layer.list.length;
 			layer.list.push(this);
 		}
-		detachLayer(){
+		detachLayer(layer=this.layer){
 			if(this.id==NaN)return false;
 			if(layer.list.length>1){
 				layer.list[this.id]=layer.list.pop();
@@ -53,6 +60,23 @@ Space={
 		}
 	},
 }
+function Detachable(restart=false){//Deletable.call(sprite)
+	if(restart||!("detachScripts"in this))this.detachScripts=function(){//detachScripts
+		let list=this.updateScriptList;
+		for (var i = 0; i < list.length; i++) {
+			if(list[i].detachScripts==undefined)console.log("ERROR:",i,list[i])
+			list[i].detachScripts();
+		}
+	}
+	if(restart||!("attachScripts"in this))this.attachScripts=function(){//attachScripts
+		let list=this.updateScriptList;
+		for (var i = 0; i < list.length; i++) {
+			list[i].attachScripts();
+		}
+	}
+	if(restart||!("updateScriptList"in this))this.updateScriptList=[];
+	return this;
+}
 function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).addPhysics(layer...);
 	const layers=mainGame.layers;
 	this.keywords={
@@ -69,20 +93,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 	this.velocity=[0,0];
 	this.matrixPos=[[1,0],[0,1],[0,0]];//[rotation,coords]
 	this.layer=SpaceLayer;
-
-	this.detatchScripts=function(){
-		let list=updateScriptList;
-		for (var i = 0; i < list.length; i++) {
-			list[i].detatchLayer();
-		}
-	}
-	this.attatchScripts=function(){
-		let list=updateScriptList;
-		for (var i = 0; i < list.length; i++) {
-			list[i].attatchLayer();
-		}
-	}
-	this.updateScriptList=[];
+	Detachable.call(this);
 	(()=>{//extensions
 		this.addDrawing=(colour=this.colour)=>{
 			this.colour=colour;
@@ -143,12 +154,11 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 		this.addPhysics=()=>{
 			this.type.physical=1;
 			this.mass=1;
-			this.Physics={
+			this.Physics=Detachable.call({
 				minObj:null,
 				minCTime:NaN,
 				minDist:NaN,
 				isColliding:false,
-				scripts:[],
 				newVelocity:Clone(this.velocity),
 				update1:new mainGame.UpdateScript(this,layers.physics.list[2],undefined,()=>{
 					this.Physics.newVelocity=[this.velocity[0],this.velocity[1]];
@@ -195,45 +205,11 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 						let obj=this.Physics.minObj;
 						this.colour="red";
 						switch(obj.type.shape){
-							case"circleOldButWorking":/*
-								let dif=Math.minusVec2(this.coords,Math.addVec2(obj.coords,obj.velocity));
-								let len=Math.len2(dif);
-								let avgVel=Math.scaleVec2(Math.addVec2(this.velocity,obj.velocity),0.5);
-								let ang=Math.getAngle(dif,0,1);
-
-								let vel2=Math.rotate(Math.minusVec2(this.velocity,avgVel),-ang,0,1);
-								//vel2[0]=Math.abs(vel2[0]);
-								if(this.type.movable!==false){
-									if(obj.type.movable===false)vel2[0]=Math.abs(vel2[0]);
-									else if(obj.mass!=this.mass)
-										vel2[0]=vel2[0]/Math.sqrt(this.mass)+Math.abs(vel2[0])/Math.sqrt(this.mass/obj.mass);
-									else vel2[0]=Math.abs(vel2[0]);//vel2[0]=0;
-									vel2=Math.rotate(vel2,ang,0,1);
-	
-									this.velocity=Math.addVec2(vel2,avgVel);
-								}
-
-								vel2=Math.rotate(Math.minusVec2(obj.velocity,avgVel),-ang,0,1);
-								//vel2[0]=-Math.abs(vel2[0]);
-								if(obj.type.movable!==false){//calulate forces with mass
-									if(this.type.movable==false)vel2[0]=-Math.abs(vel2[0]);
-									else if(this.mass!=obj.mass)
-										vel2[0]=vel2[0]/Math.sqrt(obj.mass)-Math.abs(vel2[0])/Math.sqrt(obj.mass/this.mass);
-									else vel2[0]=-Math.abs(vel2[0]);//vel2[0]=0;
-									vel2=Math.rotate(vel2,ang,0,1);
-									obj.velocity=Math.addVec2(vel2,avgVel);
-								}
-								
-								
-								if(len<(this.size+obj.size)&&this.type.movable!==false)this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
-								if(len<(this.size+obj.size)&&obj.type.movable!==false)obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
-								*/
-							break;
-							case"circle":
+							case"circleOld":{
 								let dif=Math.minusVec2(this.coords,Math.addVec2(obj.coords,obj.velocity));
 								let len=Math.len2(dif);
 								let vel_u=Math.minusVec2(this.velocity,obj.velocity);
-								let abs_vu=0;//abs(v-u); (v = final velocity)
+								let abs_vu=0;//abs(v-u); (change in speed)
 								//vel2[0]=Math.abs(vel2[0]);
 								abs_vu=[
 									 (Math.SQRT1_2*(1-Math.sqrt(obj.mass/this.mass))-1),
@@ -252,31 +228,88 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 								//console.log(this.velocity,obj.velocity);//alert(test);
 								if(len<(this.size+obj.size)&&this.type.movable!==false)this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
 								if(len<(this.size+obj.size)&&obj.type.movable!==false)obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
-							break;
-							case "circleNew"://console.log();alert(this.Physics.minCTime)
-								this.Physics.getCircleCollide(obj);
-								obj.Physics.getCircleCollide(obj);
-								this.velocity=[this.Physics.newVelocity[0],this.Physics.newVelocity[1]];
-								obj.velocity=[obj.Physics.newVelocity[0],obj.Physics.newVelocity[1]];
+							}break;
+							case"circle":
+								let dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(obj.coords,obj.velocity));
+								let len=Math.len2(dif);
+								let vScalers=[[0,0],[0,0]];
+								let inf0=0+(this.mass==Infinity||this.type.movable===false);
+								let inf1=0+( obj.mass==Infinity|| obj.type.movable===false);
+								//calulate new velocity
+								if(inf0||inf1){
+									vScalers=[
+										[
+											(inf0-inf1)/1,
+											inf1/1,
+										],
+										[
+											(inf1-inf0)/1,
+											inf0/1
+										],
+									];
+								}
+								else if(this.mass+obj.mass==0){
+									vScalers=[
+										[
+											(this.mass-obj.mass)/1,
+											(2*obj.mass)/1
+										],
+										[
+											(obj.mass-this.mass)/1,
+											(2*this.mass)/1
+										],
+									];
+								}
+								else{
+									vScalers=[
+										[
+											(this.mass-obj.mass)/(this.mass+obj.mass),
+											(2*obj.mass)/(this.mass+obj.mass)
+										],
+										[
+											(obj.mass-this.mass)/(obj.mass+this.mass),
+											(2*this.mass)/(obj.mass+this.mass)
+										],
+									];
+								}
+								let angle=Math.getAngle(dif,0,1);
+								let vel1=[
+									Math.rotate(this.velocity,-angle,0,1),
+									Math.rotate( obj.velocity,-angle,0,1),
+								];
+								let vel2=[
+									vel1[0][0]*vScalers[0][0]+vel1[1][0]*vScalers[0][1],
+									vel1[1][0]*vScalers[1][0]+vel1[0][0]*vScalers[1][1],
+								];
+								vel1[0][0]=vel2[0];
+								vel1[1][0]=vel2[1];
+								vel1=[
+									Math.rotate(vel1[0],angle,0,1),
+									Math.rotate(vel1[1],angle,0,1),
+								];
+								this.velocity=vel1[0];
+								obj.velocity=vel1[1];
+								if(len<(this.size+obj.size)&&this.type.movable!==false)this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
+								if(len<(this.size+obj.size)&&obj.type.movable!==false)obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
 							break;
 						}
 					}else{
 						this.colour=this.keywords.colour;
 					}
 				}),
-				attatchLayer:function(){
+				attachLayer:function(){
 					for(let i=0;i<this.scripts.length;i++){
-						this.scripts[i].attatchLayer();
+						this.scripts[i].attachLayer();
 					}
 				},
-				detatchLayer:function(){
+				detachLayer:function(){
 					for(let i=0;i<this.scripts.length;i++){
-						this.scripts[i].detatchLayer();
+						this.scripts[i].detachLayer();
 					}
 				},
-			};
+			});
 			//this.Physics.update2.detachLayer();
-			//this.Physics.scripts=[this.Physics.update1,this.Physics.update2,this.Physics.update3];
+			this.Physics.updateScriptList=[this.Physics.update1];
 			this.updateScriptList.push(this.Physics);
 			return this;
 		}
