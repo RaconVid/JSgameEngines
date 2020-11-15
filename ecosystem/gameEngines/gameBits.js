@@ -33,6 +33,7 @@ Space={
 			this.onUpdate=onUpdate;
 			this.layer=layer;
 			this.matrixPos=[[1,0],[0,1],[0,0]];
+			this.camera=null;
 			this.type={
 				shape:"line",
 			};
@@ -43,7 +44,10 @@ Space={
 			let dif=Math.undotransform()
 		}
 		giveOnCollide(collider){
-
+			//collider.detachSpace();
+			collider.layer=this.camera.layer;
+			//collider.coords=Math.transform(Math.undoTransform(collider.coords,this.matrixPos),this.camera.matrixPos);
+			//collider.attachSpace();
 		}
 	},
 	Layer:class{
@@ -76,6 +80,11 @@ function Detachable(restart=false){//Deletable.call(sprite)
 	}
 	if(restart||!("updateScriptList"in this))this.updateScriptList=[];
 	return this;
+};
+class Camera{
+	constructor({matrixPos,}){
+		this.matrixPos=matrixPos;
+	}
 }
 function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).addPhysics(layer...);
 	const layers=mainGame.layers;
@@ -94,15 +103,18 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 	this.matrixPos=[[1,0],[0,1],[0,0]];//[rotation,coords]
 	this.layer=SpaceLayer;
 	Detachable.call(this);
+	this.PosisionUpdate = new mainGame.UpdateScript(this,layers.physics.list[7],undefined,()=>{
+		this.matrixPos[this.matrixPos.length-1]=this.coords;
+	});
 	(()=>{//extensions
 		this.addDrawing=(colour=this.colour)=>{
 			this.colour=colour;
 			this.Drawing = new mainGame.UpdateScript(this,layers.draw.list[4],undefined,()=>{
-				ctx.translate(this.coords[0],this.coords[1])
+				//ctx.translate(this.coords[0],this.coords[1])
 				Draw.transform(this.matrixPos);
 				Draw.circle(0,0,this.size,this.colour);
 				Draw.undoTransform(this.matrixPos);
-				ctx.translate(-this.coords[0],-this.coords[1])
+				//ctx.translate(-this.coords[0],-this.coords[1])
 			});
 			this.updateScriptList.push(this.Drawing);
 			return this;
@@ -113,6 +125,17 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					if("keywords" in obj)
 					if(this.triggerKeyWord[0] in obj.keywords)
 					if(obj.keywords[this.triggerKeyWord[0]]==this.triggerKeyWord[1]){
+						return this.hitboxScript(obj);
+					}
+					return false;
+				};
+			}
+			else{
+				this.detectorFilter=filter;
+			}
+			switch(this.type.shape){
+				default://i.e. "circle"
+					this.hitboxScript=function(obj){
 						let dist;
 						switch(obj.type.shape){
 							case"circle":
@@ -126,12 +149,9 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 						}
 						return true;
 					}
-					return false;
-				};
+				break;
 			}
-			else{
-				detectorFilter=filter;
-			}
+			
 			this.keywords.colour=this.colour;
 			this.triggerKeyWord=triggerKeyWord;
 			this.objsInHitbox=[];
@@ -148,8 +168,42 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			this.updateScriptList.push(this.areaDetectorScript);
 			return this;
 		};
-		this.addCamera=()=>{
-			
+		this.addCamera=(isPlayer=false)=>{
+			this.type.camera=true;
+			this.viewLayer=layers.draw;
+			if(isPlayer){
+				this.draw_view = new mainGame.UpdateScript(this,layers.mainDraw.list[4],undefined,function(){
+					const sprite=this.sprite;
+					ctx.translate(Draw.width/2,Draw.height/2);
+					Draw.undoTransform(sprite.matrixPos);
+					sprite.viewLayer.onUpdate();
+					Draw.transform(sprite.matrixPos);
+					ctx.translate(-Draw.width/2,-Draw.height/2);
+				});
+			}else{
+				this.draw_view = new mainGame.UpdateScript(this,layers.mainDraw.list[4],undefined,function(){
+					Draw.undoTransform(this.sprite.matrixPos);
+					this.sprite.viewLayer.onUpdate();
+					Draw.transform(this.sprite.matrixPos);
+				});
+			}
+			this.updateScriptList.push(this.draw_view);
+			switch(this.type.shape){
+				case"circle":
+				this.getSpaceLayers=function(){
+					const searchSpaceLayer=(spacelayer,list,)=>{
+						for (let i=0;i<spacelayer.length; i++) {
+							const obj=spacelayer[i];
+							if(obj.type.portal!=undefined)
+							if(obj.type.portal.basic1==true){
+								//searchSpaceLayer
+							}
+						}
+					}
+				}
+				break;
+			}
+			return this;
 		};
 		this.addPhysics=()=>{
 			this.type.physical=1;
@@ -315,4 +369,42 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 		}
 	})();
 	return this;
+}
+GUI={
+	Meterbar:class{//8:15 to 8:50 : 35 mins
+		constructor(){
+			const layers=mainGame.layers;
+			Detachable.call(this);
+			this.coords=[-0.98,0.98];
+			this.bgcolour="#44332280";
+			this.getValue=function(){
+				return this.valueRef.obj[this.valueRef.property]/1000;
+			};
+			this.mainDrawScript=function(){
+				let val=this.getValue();
+				ctx.moveTo(0,0);
+				ctx.lineWidth=2;
+				ctx.fillStyle=this.bgcolour;
+				ctx.fillRect(0,0,0.4,-0.05);
+				ctx.fillStyle=Draw.hslColour(val,0.7,0.7);
+				ctx.fillRect(0.005,-0.005,(0.4-0.01)*val,-0.04);
+			};
+			this.Draw=new mainGame.UpdateScript(this,layers.mainDraw.list[7],undefined,()=>{
+				this.drawScript();
+			},1);
+			this.drawScript=()=>{
+				ctx.save();
+				ctx.translate(Draw.width/2,Draw.height/2);
+				ctx.scale(Draw.width/2,Draw.height/2);
+				ctx.translate(this.coords[0],this.coords[1]);
+				this.mainDrawScript();
+				ctx.restore();
+				//ctx.translate(this.coords[0],this.coords[1]);
+			};
+			this.setValueFunc=function(func){
+				this.getValue=func;
+				return this;
+			}
+		}
+	},
 }

@@ -1,12 +1,16 @@
 to do:
+collider.attachSpace();
+
 eco.js - resetting system
 chunks.js - make: (raymarching and space) engines
+
 add portals
+
 eco.js {
-	add drawing,
-	camera,
-	draw portals
+	add drawing:3Dish drawing,draw portals
 }
+
+
 
 arrays:{
 	ordered:

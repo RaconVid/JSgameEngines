@@ -4,7 +4,8 @@
 		mainGame.layers={
 			update:mainGame.mainLayers.update,
 			physics:new mainGame.UpdateLayer(),
-			draw:mainGame.mainLayers.draw,
+			draw:new mainGame.UpdateLayer(),
+			mainDraw:mainGame.mainLayers.draw,
 			detectors:new mainGame.UpdateLayer(),
 		}
 		for (let i = 0; i < 10; i++) {
@@ -16,6 +17,9 @@
 		for (let i = 0; i < 10; i++) {
 			mainGame.layers.draw.list[i]=new mainGame.UpdateLayer();
 		}
+		for (let i = 0; i < 10; i++) {
+			mainGame.layers.mainDraw.list[i]=new mainGame.UpdateLayer();
+		}
 		for (let i = 0; i < 4; i++) {
 			mainGame.layers.detectors.list[i]=new mainGame.UpdateLayer();
 		}
@@ -23,7 +27,7 @@
 			mainGame.layers.detectors,
 			mainGame.layers.update,
 			mainGame.layers.physics,
-			mainGame.layers.draw,
+			mainGame.layers.mainDraw,
 		];
 		let layers=mainGame.layers;
 	})();
@@ -46,9 +50,9 @@
 		],
 	};
 	
-	let player=(()=>{//6:30
+	let player=(()=>{newPlayer=()=>{//6:30
 		let sprite=Detachable.call({});
-		sprite.body=Collider.call(Detachable.call(new Space.Entity(sprite,firstPlane),1),firstPlane).addDrawing().addPhysics();
+		sprite.body=Collider.call(Detachable.call(new Space.Entity(sprite,firstPlane),1),firstPlane).addDrawing().addPhysics().addCamera();
 		sprite.body.coords=[300,100];
 		sprite.speed=200;
 		sprite.body.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(){
@@ -57,6 +61,7 @@
 			if(Inputs.getKey("4").onDown){//die
 				Inputs.keys["4"].onDown=false;
 				sprite.detachScripts();
+				body
 			}
 			//movement
 				let moveIputs=[
@@ -141,22 +146,30 @@
 
 		})(sprite.body.hand.Drawing);
 		hand.updateScriptList.push(hand.jointUpdate,hand.onRemoveVars);
-		sprite.body.updateScriptList.push(sprite.body.hand,sprite.body.update);
+		sprite.body.updateScriptList.push(sprite.body.hand,sprite.body.update,{//undo things
+				sprite:sprite.body,
+				attachScripts:function(){
+					this.sprite.attachLayer();
+				},
+				detachScripts:function(){
+					this.sprite.detachLayer();
+				},
+		});
 		sprite.body.hand.Drawing.attachLayer(layers.draw.list[7]);
 		sprite.body.hand.size=8;
 		sprite.body.hand.relCoords=[sprite.body.hand.distFromBody,0];
 		sprite.body.hand.coords=Math.addVec2(sprite.body.coords,sprite.body.hand.relCoords);
-		sprite.Camra={
-			ScriptA:new mainGame.UpdateScript(sprite,layers.draw.list[2],undefined,function(){
-				Draw.undoTransform(sprite.body.matrixPos);
-				ctx.translate(Draw.width/2-sprite.body.coords[0],Draw.height/2-sprite.body.coords[1]);
-			}),
-			ScriptB:new mainGame.UpdateScript(sprite,layers.draw.list[9],undefined,function(){
-				ctx.translate(sprite.body.coords[0]-Draw.width/2,sprite.body.coords[1]-Draw.height/2);
-				Draw.transform(sprite.body.matrixPos);
-			}),
-		}
-	})();
+
+		sprite.body.draw_view.onUpdate=function(){
+			const sprite=this.sprite;
+			ctx.translate(Draw.width/2,Draw.height/2);
+			Draw.undoTransform(sprite.matrixPos);
+			sprite.viewLayer.onUpdate();
+			Draw.transform(sprite.matrixPos);
+			ctx.translate(-Draw.width/2,-Draw.height/2);
+		};
+		return sprite;
+	};return newPlayer();} )();
 	let sprite1=(()=>{
 		let sprite={}//Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addDrawing().addPhysics(firstPlane);
 		sprite.coords=[300,200];
@@ -184,11 +197,46 @@
 	})();
 	let sprite4=(()=>{
 		let sprite=Collider.call(new Space.Entity(undefined,firstPlane),firstPlane).addDrawing().addPhysics(firstPlane);
-		sprite.coords=[370,150];
+		sprite.coords=[400,160];
 		sprite.mass=4;
 		sprite.velocity=[0,0.5];
 		sprite.colour="#00FF88";
 		return sprite;
 	})();
+	for (let i = 0; i < 1; i++) {
+		let idkBar=new GUI.Meterbar();
+		idkBar.sprite=player;
+		idkBar.getValue=function(){
+			return [
+				Math.abs(this.sprite.body.coords[0])/1000,
+				Math.abs(this.sprite.body.coords[1])/1000,
+				Math.abs(this.sprite.body.velocity[0])/10,
+				Math.abs(this.sprite.body.velocity[1])/10,
+				Math.abs(sprite3.coords[0])/1000,
+				Math.abs(Math.sin(mainGame.time.start*1+Math.sqrt(i))+1)/2,
+				Math.pow(Math.sin(mainGame.time.start*1+Math.sqrt(i)),2),
+			][i%6];
+		}
+		idkBar.coords=[Math.random()*2-1,Math.random()*2-1];
+	}
+	{
+		let barmeter=new GUI.Meterbar();
+		barmeter.getValue=()=>Math.len2(player.body.coords)/10000;
+		barmeter=new GUI.Meterbar();//coords=[-0.98,0.98];
+		barmeter.getValue=()=>(Math.len2(player.body.hand.coords)-Math.len2(player.body.coords))/100+0.5;
+		barmeter.coords=[-0.98,0.98-0.06];
+		barmeter=new GUI.Meterbar();
+		barmeter.getValue=()=>Math.len2(player.body.velocity)/10;
+		barmeter.coords=[-0.98,0.98-0.06*2];
+		barmeter=new GUI.Meterbar();
+		barmeter.getValue=()=>(Math.sin(mainGame.time.start)+1)/2;
+		barmeter.coords=[-0.98,0.98-0.06*3];
+		barmeter=new GUI.Meterbar();
+		barmeter.getValue=()=>(1/mainGame.time.delta)/100;
+		barmeter.coords=[-0.98,0.98-0.06*4];
+
+	}
+	
+	;
 	mainGame.start();
 })()
