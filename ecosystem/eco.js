@@ -37,7 +37,7 @@
 			}
 			this.Update=function(){
 				let dt=this.time.delta;
-				this.pos.velocity=Math.scaleVec2(this.pos.velocity,1/Math.pow(100,dt))
+				this.pos.velocity=Math.scaleVec2(this.pos.velocity,1/Math.pow(1.001,dt))
 				this.pos.coords=Math.addVec2(this.pos.coords,Math.scaleVec2(this.pos.velocity,dt));
 				this.pos.coords=[
 					(this.pos.coords[0]+Draw.width)%Draw.width,
@@ -106,7 +106,7 @@
 		sprite.Start();
 	}})
 	for (var i = 0; i < 400; i++) {
-		new BasicChemical({radius:10+0*Math.round(Math.random()*0.7),coords:[Math.random()*Draw.width,Math.random()*Draw.height],velocity:Math.scaleVec2(Math.rotate([0,0],Math.random()*Math.PI*4,0,1),30)})
+		new BasicChemical({radius:5+5*Math.round(Math.random()*0.7),coords:[Math.random()*Draw.width,Math.random()*Draw.height],velocity:Math.scaleVec2(Math.rotate([0,1],Math.random()*Math.PI*4,0,1),30)})
 	}
 
 	parent.start()
