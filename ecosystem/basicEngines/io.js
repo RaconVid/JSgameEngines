@@ -22,10 +22,6 @@ class IOEngine{
 				this.scale=1;
 			}
 			transform(matrix_vec){
-				ctx.translate(
-					matrix_vec[2][0],
-					matrix_vec[2][1],
-				);
 				ctx.transform(
 					matrix_vec[0][0],
 					matrix_vec[0][1],
@@ -33,19 +29,24 @@ class IOEngine{
 					matrix_vec[1][1],
 					0,0,
 				);
+				ctx.translate(
+					matrix_vec[2][0],
+					matrix_vec[2][1],
+				);
 			}
 			undoTransform(matrix_vec){
-				ctx.transform(
-					matrix_vec[1][1],
-					-matrix_vec[0][1],
-					-matrix_vec[1][0],
-					matrix_vec[0][0],
-					0,0,
-				);
 				ctx.translate(
 					-matrix_vec[2][0],
 					-matrix_vec[2][1],
-				)
+				);
+				let det=matrix_vec[0][0]*matrix_vec[1][1]-matrix_vec[0][1]*matrix_vec[1][0];
+				ctx.transform(
+					matrix_vec[1][1]/det,
+					-matrix_vec[0][1]/det,
+					-matrix_vec[1][0]/det,
+					matrix_vec[0][0]/det,
+					0,0,
+				);
 			}
 			circle(x,y,size,colour){	
 				ctx.fillStyle = colour;//green

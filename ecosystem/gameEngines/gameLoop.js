@@ -17,7 +17,7 @@ class MainGame{
 	}
 	construct_Classes(){
 		this.UpdateScript=class{
-			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){}){//i.e. parent,UpdateLayer
+			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
 				this.isDeleting=false;
 				this.sprite=sprite;
 				this.layer=layer;
@@ -25,6 +25,8 @@ class MainGame{
 					this.attachLayer(layer,layer_i);
 				}
 				this.script=script;
+				//add datachable
+				if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
 			}
 			attachLayer(layer=this.layer,layer_i){//attach to layer
 				if(typeof layer_i=="number"&&layer_i!=NaN){
@@ -35,8 +37,14 @@ class MainGame{
 				}
 
 			}
-			detatchLayer(){//detatch from Layer
-				this.isDeleting=true;//detatching is done by the UpdateLayer
+			detachLayer(){//detach from Layer
+				this.isDeleting=true;//detaching is done by the UpdateLayer
+			}
+			attachScripts(){
+				this.attachLayer();
+			}
+			detachScripts(){
+				this.detachLayer();
 			}
 			isThisDeleting(layer,layer_i){
 				return this.isDeleting;//||this.layer!=layer;
@@ -72,6 +80,7 @@ class MainGame{
 	}
 	construct_Consts(){
 		this.time=new Time();
+		this.orderLength=1;
 		this.mainLayers={
 			update:new this.UpdateLayer(),
 			draw:new this.UpdateLayer(),
@@ -88,11 +97,12 @@ class MainGame{
 		this.loop=0;
 		this.mainLoop=()=>{
 			if(!this.endLoop){
-				for (let i = 0; i < this.updateOrder.length; i++) {
+				this.orderLength=this.updateOrder.length;
+				for (let i = 0; i < this.orderLength&&i < this.updateOrder.length; i++) {
 					this.updateOrder[i].onUpdate();
 				}
 				if(!this.endLoop){
-					window.cancelAnimationFrame(this.loop);
+					//window.cancelAnimationFrame(this.loop);
 					this.loop=window.requestAnimationFrame(this.mainLoop);
 				}
 			}
@@ -101,6 +111,7 @@ class MainGame{
 	construct_Vars(){
 		this.layers={};
 		this.updateOrder=[];
+		this.menuLayers={};//not yet by MainGame class
 	}
 	start(){
 		this.endLoop=false;
@@ -114,33 +125,3 @@ class MainGame{
 		});
 	}	
 };
-Space={
-	Entity:class{
-		constructor(sprite=null,layer=undefined){
-			this.id=NaN;
-			this.sprite=sprite;
-			this.layer=layer;
-			if(layer !=undefined){
-				this.attachLayer(layer);
-			}
-		}
-		attachLayer(layer){
-			this.id=layer.list.length;
-			layer.list.push(this);
-		}
-		detachLayer(){
-			if(this.id==NaN)return false;
-			if(layer.list.length>1){
-				layer.list[this.id]=layer.list.pop();
-				layer.list[this.id].id=this.id;
-			}
-			this.id=NaN;
-		}
-	},
-	Layer:class{
-		constructor(list=[]){
-			this.onUpdate=onUpdate;
-			this.list=list;
-		}
-	}
-}
