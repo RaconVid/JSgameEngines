@@ -1,4 +1,6 @@
 to do:
+
+menus - pause,options
 collider.attachSpace();
 
 eco.js - resetting system
@@ -6,8 +8,10 @@ chunks.js - make: (raymarching and space) engines
 
 add portals
 
-eco.js {
-	add drawing:3Dish drawing,draw portals
+eco.js - drawing{
+	3Dish drawing,
+	draw portals,
+
 }
 
 

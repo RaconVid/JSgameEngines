@@ -80,6 +80,7 @@ class MainGame{
 	}
 	construct_Consts(){
 		this.time=new Time();
+		this.orderLength=1;
 		this.mainLayers={
 			update:new this.UpdateLayer(),
 			draw:new this.UpdateLayer(),
@@ -96,7 +97,8 @@ class MainGame{
 		this.loop=0;
 		this.mainLoop=()=>{
 			if(!this.endLoop){
-				for (let i = 0; i < this.updateOrder.length; i++) {
+				this.orderLength=this.updateOrder.length;
+				for (let i = 0; i < this.orderLength&&i < this.updateOrder.length; i++) {
 					this.updateOrder[i].onUpdate();
 				}
 				if(!this.endLoop){
@@ -109,6 +111,7 @@ class MainGame{
 	construct_Vars(){
 		this.layers={};
 		this.updateOrder=[];
+		this.menuLayers={};//not yet by MainGame class
 	}
 	start(){
 		this.endLoop=false;
