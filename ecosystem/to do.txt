@@ -1,3 +1,26 @@
-to do
-chunks.js - add to index.html
-eco.js
+to do:
+
+menus - pause,options
+collider.attachSpace();
+
+eco.js - resetting system
+chunks.js - make: (raymarching and space) engines
+
+add portals
+
+eco.js - drawing{
+	3Dish drawing,
+	draw portals,
+
+}
+
+
+
+arrays:{
+	ordered:
+	id:
+
+}
+phase:{
+	add
+}

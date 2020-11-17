@@ -1,81 +1,127 @@
 class MainGame{
 	constructor(){
-		this.loop=0;
-		this.Update=class{
-			constructor(numOfLayers=1,updateName="Update",hasUpdateName="hasUpdate"){
-				this.updateName=updateName;
-				this.hasUpdateName=hasUpdateName;
-				this.layers=[];
-				for (let i = 0; i < numOfLayers; i++) {
-					this.layers.push([]);
-				}
-			}
-			addSpriteToLayer(sprite,layer){
-				if(layer>=this.layers.length){
-					for (let i = 0; i < 100&&this.layers.length<=layer&&this.layers.length<100; i++) {
-						this.layers.push([]);
-					}
-				}
-				this.layers[layer].push(sprite);
-			}
-			addSprite(sprite){
-				this.addSpriteToLayer(sprite,this.layers.length-1);
-			}
-			doUpdates(){
-				for(let i =0;i<this.layers.length;i++){
-					const layer=this.layers[i];
-					for(let j =0;j<layer.length;j++){
-						let obj=layer[j];
-						if(this.updateName in obj&&obj[this.hasUpdateName+"Val"]!==false){
-							obj[this.updateName]();
-						}
-						else{
-							layer.splice(j,1);
-						}
-					}
-				}
-			}
+		this.construct_Classes();
+		this.construct_Consts();
+		this.construct_Vars();
+		this.construct_defaultSettings();
+	}
+	construct_defaultSettings(){
+		this.layers={
+			update:this.mainLayers.update,
+			draw:this.mainLayers.draw,
 		};
-		this.updates={
-			update:new this.Update(1,"Update","hasUpdate"),
-			draw:new this.Update(1,"DrawSprite","hasDraw"),
-		};
-		this.nextId=0;
-		this.freeIds=[];
-		this.sprites={};
-		this.mainLoop=()=>{
-			this.time.startLoop();
-			Draw.clear();
-			this.updates.update.doUpdates();
-			this.updates.draw.doUpdates();
-			if(!this.endLoop){
-				window.requestAnimationFrame(this.mainLoop);
+		this.updateOrder=[
+			this.layers.update,
+			this.layers.draw,
+		];
+	}
+	construct_Classes(){
+		this.UpdateScript=class{
+			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
+				this.isDeleting=false;
+				this.sprite=sprite;
+				this.layer=layer;
+				if(layer !=undefined){
+					this.attachLayer(layer,layer_i);
+				}
+				this.script=script;
+				//add datachable
+				if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
+			}
+			attachLayer(layer=this.layer,layer_i){//attach to layer
+				if(typeof layer_i=="number"&&layer_i!=NaN){
+					layer.list[layer_i]=this;
+				}
+				else if(layer_i==undefined){
+					layer.list.push(this);
+				}
+
+			}
+			detachLayer(){//detach from Layer
+				this.isDeleting=true;//detaching is done by the UpdateLayer
+			}
+			attachScripts(){
+				this.attachLayer();
+			}
+			detachScripts(){
+				this.detachLayer();
+			}
+			isThisDeleting(layer,layer_i){
+				return this.isDeleting;//||this.layer!=layer;
+			}
+			onUpdate(layer,layer_i){
+				this.script(layer,layer_i);
 			}
 		}
-		this.endLoop=false;
+		this.UpdateLayer=class{
+			constructor(onUpdate=()=>{this.layerScript();},list=[]){
+				this.onUpdate=onUpdate;
+				this.list=list;
+				this.isDeleting=false;
+			}
+			layerScript(){
+				let remove=false;
+
+				for (let i = 0; i < this.list.length; i++) {
+					if(this.list[i]==undefined)continue;
+					if(!this.list[i].isDeleting){//!(removing script)
+						this.list[i].onUpdate(this,i);
+						if(!this.list[i].isDeleting){
+							continue;
+						}
+					}
+					//else : remove script
+					this.list[i].isDeleting=false;
+					this.list.splice(i,1);
+					i--;
+				}
+			};
+		}
+	}
+	construct_Consts(){
 		this.time=new Time();
-	}
-	addId(spriteObj){
-		let id;
-		if(this.freeIds.length>0){
-			id=this.freeIds.shift();
+		this.orderLength=1;
+		this.mainLayers={
+			update:new this.UpdateLayer(),
+			draw:new this.UpdateLayer(),
 		}
-		else{
-			id=this.nextId;
-			this.nextId++;
+		this.mainLayers.update.onUpdate=function(){//default function
+			this.layerScript();
+		};
+		this.mainLayers.draw.parent=this;
+		this.mainLayers.draw.onUpdate=function(){
+			Draw.clear();
+			this.layerScript();
+			this.parent.time.startLoop();
+		};
+		this.loop=0;
+		this.mainLoop=()=>{
+			if(!this.endLoop){
+				this.orderLength=this.updateOrder.length;
+				for (let i = 0; i < this.orderLength&&i < this.updateOrder.length; i++) {
+					this.updateOrder[i].onUpdate();
+				}
+				if(!this.endLoop){
+					//window.cancelAnimationFrame(this.loop);
+					this.loop=window.requestAnimationFrame(this.mainLoop);
+				}
+			}
 		}
-		this.sprites[id]=spriteObj;
-		spriteObj.id=String(id);
 	}
-	deleteId(id){
-		freeIds.push(id);
-		delete this.sprites[id];
+	construct_Vars(){
+		this.layers={};
+		this.updateOrder=[];
+		this.menuLayers={};//not yet by MainGame class
 	}
 	start(){
+		this.endLoop=false;
 		this.loop=window.requestAnimationFrame(this.mainLoop);
 	}
 	end(){
 		window.cancelAnimationFrame(this.loop);
 		this.endLoop=true;
-	}
+		window.requestAnimationFrame(()=>{
+			Draw.clear();
+		});
+	}	
 };

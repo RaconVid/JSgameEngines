@@ -10,6 +10,9 @@ Clone=function(obj){
 		}
 		return(objClone);
 	}
+	if(obj instanceof Refference){
+		return(obj);
+	}
 	if(obj instanceof Object){
 		objClone={};
 		for(var i in obj){
@@ -19,6 +22,9 @@ Clone=function(obj){
 		}
 		return(objClone);
 	}
+}
+class Refference{
+	constructor(){}
 }
 loga=function(log="",alertText=""){
 	console.log(log);alert(alertText);

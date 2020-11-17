@@ -4,8 +4,8 @@ class IOEngine{
 		window.Draw.start();
 		window.Inputs=new this.Inputs(document.getElementById("canvas1"));
 		window.Inputs.start();
-		window.fps=new this.Fps();
-		window.fps.start();
+		//window.fps=new this.Fps();
+		//window.fps.start();
 		window.Time=this.Time;
 		//Draw.canvasObj.width=640;
 		//Draw.canvasObj.height=360;
@@ -21,8 +21,32 @@ class IOEngine{
 				this.height=360;
 				this.scale=1;
 			}
-			transform(vec,scale,rotate){
-				ctx.translate(vec[0],vec[0],)
+			transform(matrix_vec){
+				ctx.transform(
+					matrix_vec[0][0],
+					matrix_vec[0][1],
+					matrix_vec[1][0],
+					matrix_vec[1][1],
+					0,0,
+				);
+				ctx.translate(
+					matrix_vec[2][0],
+					matrix_vec[2][1],
+				);
+			}
+			undoTransform(matrix_vec){
+				ctx.translate(
+					-matrix_vec[2][0],
+					-matrix_vec[2][1],
+				);
+				let det=matrix_vec[0][0]*matrix_vec[1][1]-matrix_vec[0][1]*matrix_vec[1][0];
+				ctx.transform(
+					matrix_vec[1][1]/det,
+					-matrix_vec[0][1]/det,
+					-matrix_vec[1][0]/det,
+					matrix_vec[0][0]/det,
+					0,0,
+				);
 			}
 			circle(x,y,size,colour){	
 				ctx.fillStyle = colour;//green
@@ -153,9 +177,9 @@ class IOEngine{
 					},
 				};
 				let functions={
-					mousemove:(event)=>{
-						this.mouse.x=event.clientX;
-						this.mouse.y=event.clientY;
+					mousemove:(event)=>{alert
+						this.mouse.x=event.clientX/Draw.scale;
+						this.mouse.y=event.clientY/Draw.scale;
 					},
 					mousedown:(event)=>{
 						this.mouse.down=true;
@@ -171,8 +195,28 @@ class IOEngine{
 					window.addEventListener(i,windowFunctions[i],true);
 				}
 			}
+			getKey(keyCode){
+				return (this.newKey(keyCode));
+			}
 			newKey(keyCode){
-				this.keys[keyCode]=new this.Key();
+				if(!(keyCode in this.keys)){
+					this.keys[keyCode]=new this.Key();
+				}
+				return this.keys[keyCode];
+			}
+		};
+		this.Time=class{
+			constructor(){
+				this.delta=1/60;//in seconds
+				this.start=this.real;
+			}
+			get real(){//in seconds
+				return (new Date()).getTime()/1000;
+			}
+			startLoop(){
+				let endTime=this.real;
+				if(endTime-this.start>0)this.delta=Math.min(1/15,endTime-this.start);
+				this.start=endTime;
 			}
 		};
 		this.Fps=class{
@@ -197,42 +241,6 @@ class IOEngine{
 				},0.1);
 			}
 		};
-		this.Time=class{
-			constructor(){
-				this.delta=1/60;//in seconds
-				this.start=this.real;
-			}
-			get real(){//in seconds
-				return (new Date()).getTime()/1000;
-			}
-			startLoop(){
-				let endTime=this.real;
-				if(endTime-this.start>0)this.delta=Math.min(1/15,endTime-this.start);
-				this.start=endTime;
-			}
-		}
-	}
-	clone(obj){
-		var objClone;
-		if(obj === null || typeof obj !== "object"){
-			return(obj);
-		}
-		if(obj instanceof Array){
-			objClone=[];
-			for(var i=0; i<obj.length; i++){
-				objClone[i]=clone(obj[i]);
-			}
-			return(objClone);
-		}
-		if(obj instanceof Object){
-			objClone={};
-			for(var i in obj){
-				if(obj.hasOwnProperty(i)){
-					objClone[i]=clone(obj[i]);
-				}
-			}
-			return(objClone);
-		}
 	}
 }
 
