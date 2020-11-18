@@ -1,19 +1,6 @@
-to do:
-
-menus - pause,options
-collider.attachSpace();
-
-eco.js - resetting system
-chunks.js - make: (raymarching and space) engines
-
-add portals
-
-eco.js - drawing{
-	3Dish drawing,
-	draw portals,
-
-}
-
+to do
+chunks.js - make: (raymarching,physics and space) engines
+eco.js
 
 
 arrays:{
@@ -23,4 +10,17 @@ arrays:{
 }
 phase:{
 	add
+}
+
+new sprite;
+addTo updates;
+addTo draw;
+add collider::circle;
+add PlayerControls;
+joystick -> movement; V^1= joystick;
+this.Movement/physics=()=>{
+	Get Objs;
+	foreach Obj
+	get distVec();//returns {isInHitBox,dist,dist A->B vec,
+
 }

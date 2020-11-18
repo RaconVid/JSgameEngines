@@ -17,39 +17,51 @@ class MainGame{
 	}
 	construct_Classes(){
 		this.UpdateScript=class{
-			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
+			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){}){//i.e. parent,UpdateLayer
 				this.isDeleting=false;
 				this.sprite=sprite;
 				this.layer=layer;
+				this.id=layer_i;
 				if(layer !=undefined){
 					this.attachLayer(layer,layer_i);
 				}
 				this.script=script;
-				//add datachable
-				if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
 			}
 			attachLayer(layer=this.layer,layer_i){//attach to layer
 				if(typeof layer_i=="number"&&layer_i!=NaN){
 					layer.list[layer_i]=this;
+					this.id=layer_i;
 				}
 				else if(layer_i==undefined){
+					this.id=layer.list.length
 					layer.list.push(this);
 				}
-
 			}
-			detachLayer(){//detach from Layer
-				this.isDeleting=true;//detaching is done by the UpdateLayer
+			addPassive(){//UNFINNISHED//mode: layer deletes Scripts
+				//unknown id
+				//known id
+				this.detatchLayer=function(id){//ordered
+					this.layer.list[this.id]=undefined;
+				};
+				this.detatchLayer=function(){//unordered
+					let carry=this.layer.list.pop();
+					if(this.layer.list.length>0){
+						this.layer.list[this.id]=carry;
+						carry.id=this.id;
+					}
+					this.id=undefined;
+				};
 			}
-			attachScripts(){
-				this.attachLayer();
+			detatchLayer(){//detatch from Layer
+				this.isDeleting=true;//detatching is done by the UpdateLayer
 			}
-			detachScripts(){
-				this.detachLayer();
+			detatch(){
 			}
 			isThisDeleting(layer,layer_i){
 				return this.isDeleting;//||this.layer!=layer;
 			}
 			onUpdate(layer,layer_i){
+				this.id=layer_i;
 				this.script(layer,layer_i);
 			}
 		}
@@ -58,29 +70,36 @@ class MainGame{
 				this.onUpdate=onUpdate;
 				this.list=list;
 				this.isDeleting=false;
+				this.modes={
+					ordered:true,
+					constantIDs:true,
+				}
 			}
 			layerScript(){
+				//if list[i]: undefined=deserved space,
+				//0==
 				let remove=false;
-
 				for (let i = 0; i < this.list.length; i++) {
 					if(this.list[i]==undefined)continue;
+					if(this.list[i]===1){
+						this.list.splice(i,1);
+						i--;
+						continue;
+					}
 					if(!this.list[i].isDeleting){//!(removing script)
 						this.list[i].onUpdate(this,i);
-						if(!this.list[i].isDeleting){
-							continue;
-						}
+						if(!this.list[i].isDeleting)continue;
 					}
 					//else : remove script
 					this.list[i].isDeleting=false;
 					this.list.splice(i,1);
 					i--;
 				}
-			};
+			}
 		}
 	}
 	construct_Consts(){
 		this.time=new Time();
-		this.orderLength=1;
 		this.mainLayers={
 			update:new this.UpdateLayer(),
 			draw:new this.UpdateLayer(),
@@ -97,12 +116,11 @@ class MainGame{
 		this.loop=0;
 		this.mainLoop=()=>{
 			if(!this.endLoop){
-				this.orderLength=this.updateOrder.length;
-				for (let i = 0; i < this.orderLength&&i < this.updateOrder.length; i++) {
+				for (let i = 0; i < this.updateOrder.length; i++) {
 					this.updateOrder[i].onUpdate();
 				}
 				if(!this.endLoop){
-					//window.cancelAnimationFrame(this.loop);
+					window.cancelAnimationFrame(this.loop);
 					this.loop=window.requestAnimationFrame(this.mainLoop);
 				}
 			}
@@ -111,7 +129,6 @@ class MainGame{
 	construct_Vars(){
 		this.layers={};
 		this.updateOrder=[];
-		this.menuLayers={};//not yet by MainGame class
 	}
 	start(){
 		this.endLoop=false;
@@ -125,3 +142,32 @@ class MainGame{
 		});
 	}	
 };
+Space={
+	Entity:class{
+		constructor(sprite=null,layer=undefined){
+			this.id=NaN;
+			this.sprite=sprite;
+			this.layer=layer;
+			if(layer !=undefined){
+				this.attachLayer(layer);
+			}
+		}
+		attachLayer(layer){
+			this.id=layer.list.length;
+			layer.list.push(this);
+		}
+		detatchLayer(){
+			if(this.id==NaN)return false;
+			if(layer.list.length>1){
+				layer.list[this.id]=layer.list.pop();
+				layer.list[this.id].id=this.id;
+			}
+			this.id=NaN;
+		}
+	},
+	EntityLayer:class{
+		constructor(list=[]){
+			this.list=list;
+		}
+	}
+}
