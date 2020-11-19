@@ -214,75 +214,12 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 				minDist:NaN,
 				isColliding:false,
 				newVelocity:Clone(this.velocity),
-				update1:new mainGame.UpdateScript(this,layers.physics.list[2],undefined,()=>{
-					this.Physics.newVelocity=[this.velocity[0],this.velocity[1]];
-					let minDist=Infinity;//can be -ve (i.e. <0)
-					let minCTime=Infinity;//min Collission time how many frames until collision
-					let minObj=null;
-					//phisics layer 1: get/handle collisions
-					for(let i=0;i<this.layer.list.length;i++){
-						let obj=this.layer.list[i];
-						if(obj==this)continue;
-						if(obj.type!=undefined)if(obj.type.shape!=undefined)if(obj.type.physical!=undefined){
-							let normal,obj_dist,obj_time,normal2, dif,len;
-							switch(obj.type.shape){
-								case "circle":
-									dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(obj.coords,obj.velocity));
-									len=Math.len2(dif)-(this.size+obj.size);
-									if(len<0){
-										normal=Math.minusVec2(this.coords,obj.coords);
-										obj_dist=Math.len2(normal)-(this.size+obj.size);
-										if(obj_dist<len){
-											obj_dist=(obj_dist-len);
-										}
-										else{
-											obj_dist=len;
-										}
-										if(obj_dist<minCTime&&obj_dist<0){
-											minCTime=obj_dist;
-											minObj=obj;
-										}
-									}
-								break;
-								default:
-							}
-						}
-					}
-					this.Physics.minObj=minObj;
-					this.Physics.minCTime=minCTime;
-					this.Physics.isColliding=this.Physics.minObj!=null&&this.Physics.minCTime<1;
-					this.Physics.minCTime=this.type.movable===false?1:Math.clamp(0,1,this.Physics.minCTime);
-
+				reflectVel:()=>{
 					//phisics part 2: do collisions + move object
-					this.coords=Math.addVec2(this.coords,Math.scaleVec2(this.velocity,this.Physics.minCTime));
 					if(this.Physics.isColliding){
 						let obj=this.Physics.minObj;
 						this.colour="red";
 						switch(obj.type.shape){
-							case"circleOld":{
-								let dif=Math.minusVec2(this.coords,Math.addVec2(obj.coords,obj.velocity));
-								let len=Math.len2(dif);
-								let vel_u=Math.minusVec2(this.velocity,obj.velocity);
-								let abs_vu=0;//abs(v-u); (change in speed)
-								//vel2[0]=Math.abs(vel2[0]);
-								abs_vu=[
-									 (Math.SQRT1_2*(1-Math.sqrt(obj.mass/this.mass))-1),
-									-(Math.SQRT1_2*(1-Math.sqrt(this.mass/obj.mass))-1),
-								];
-								abs_vu=[
-									 ((1-1/(this.mass))-1),
-									-((1-1/(obj.mass))-1),
-								];
-								let test=[
-									(Math.pow(abs_vu[0]+1,2)*this.mass+Math.pow(abs_vu[1]-1,2)*obj.mass)*Math.len2(vel_u),
-								];
-								
-								this.velocity=Math.addVec2(this.velocity,Math.scaleVec2(vel_u,abs_vu[0]));
-								obj.velocity=Math.addVec2( obj.velocity,Math.scaleVec2(vel_u,abs_vu[1]));
-								//console.log(this.velocity,obj.velocity);//alert(test);
-								if(len<(this.size+obj.size)&&this.type.movable!==false)this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
-								if(len<(this.size+obj.size)&&obj.type.movable!==false)obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
-							}break;
 							case"circle":
 								let dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(obj.coords,obj.velocity));
 								let len=Math.len2(dif);
@@ -350,6 +287,50 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					}else{
 						this.colour=this.keywords.colour;
 					}
+				},
+				findMinObj:()=>{
+					this.Physics.newVelocity=[this.velocity[0],this.velocity[1]];
+					let minDist=Infinity;//can be -ve (i.e. <0)
+					let minCTime=Infinity;//min Collission time how many frames until collision
+					let minObj=null;
+					//phisics layer 1: get/handle collisions
+					for(let i=0;i<this.layer.list.length;i++){
+						let obj=this.layer.list[i];
+						if(obj==this)continue;
+						if(obj.type!=undefined)if(obj.type.shape!=undefined)if(obj.type.physical!=undefined){
+							let normal,obj_dist,obj_time,normal2, dif,len;
+							switch(obj.type.shape){
+								case "circle":
+									dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(obj.coords,[0,0]));//obj.velocity));
+									len=Math.len2(dif)-(this.size+obj.size);
+									if(len<0){
+										normal=Math.minusVec2(this.coords,obj.coords);
+										obj_dist=Math.len2(normal)-(this.size+obj.size);
+										if(obj_dist<len){//collide
+											obj_dist=(obj_dist-len);
+										}
+										else{
+											obj_dist=len;
+										}
+										if(obj_dist<minCTime&&obj_dist<0){
+											minCTime=obj_dist;
+											minObj=obj;
+										}
+									}
+								break;
+								default:
+							}
+						}
+					}
+					this.Physics.minObj=minObj;
+					this.Physics.minCTime=minCTime;
+					this.Physics.isColliding=this.Physics.minObj!=null&&this.Physics.minCTime<1;
+					this.Physics.minCTime=this.type.movable===false?1:Math.clamp(0,1,this.Physics.minCTime);
+				},
+				update1:new mainGame.UpdateScript(this,layers.physics.list[2],undefined,()=>{
+					this.Physics.findMinObj();
+					this.coords=Math.addVec2(this.coords,Math.scaleVec2(this.velocity,this.Physics.minCTime));
+					//this.Physics.reflectVel();
 				}),
 				attachLayer:function(){
 					for(let i=0;i<this.scripts.length;i++){
