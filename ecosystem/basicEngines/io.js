@@ -21,31 +21,32 @@ class IOEngine{
 				this.height=360;
 				this.scale=1;
 			}
-			transform(matrix_vec){
+			transform(pos){
 				ctx.translate(
-					matrix_vec[1][0],
-					matrix_vec[1][1],
+					pos.vec[0],
+					pos.vec[1],
 				);
 				ctx.transform(
-					matrix_vec[0][0][0],
-					matrix_vec[0][0][1],
-					matrix_vec[0][1][0],
-					matrix_vec[0][1][1],
+					pos.mat[0][0],
+					pos.mat[0][1],
+					pos.mat[1][0],
+					pos.mat[1][1],
 					0,0,
 				);
 			}
-			undoTransform(matrix_vec){
+			undoTransform(pos){//{mat,vec}
+				ctx.translate(
+					-pos.vec[0],
+					-pos.vec[1],
+				);
+				let det=pos.mat[0]*pos.mat[1]-pos.mat[1]*pos.mat[0];
 				ctx.transform(
-					matrix_vec[0][1][1],
-					-matrix_vec[0][0][1],
-					-matrix_vec[0][1][0],
-					matrix_vec[0][0][0],
+					pos.mat[1]/det,
+					-pos.mat[1]/det,
+					-pos.mat[0]/det,
+					pos.mat[0]/det,
 					0,0,
 				);
-				ctx.translate(
-					-matrix_vec[1][0],
-					-matrix_vec[1][1],
-				)
 			}
 			circle(x,y,size,colour){	
 				ctx.fillStyle = colour;//green
