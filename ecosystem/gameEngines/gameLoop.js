@@ -77,6 +77,18 @@ class MainGame{
 				}
 			};
 		}
+		this.RefLinker=class{
+			constructor(){
+				this.a=null;
+				this.b=null;
+			}
+			detach(){
+
+			}
+			attach(){
+
+			}
+		}
 	}
 	construct_Consts(){
 		this.time=new Time();
