@@ -1,38 +1,74 @@
 Space={
 	//--------
 		Camera:class{
-			constructor(){
+			constructor(){window.numN=1;//to delete: testing
 				this.coords=[0,0];
-				//this.layerRef=null;
+				this.layerRef=null;
 				this.viewList=[];
 				this.pos=new Space.Pos();
+				this.n=0;
 				this.type={
 					shape:"point",
-					portal:{
-						basic1:true,
-					}
+					//portal:{
+						//basic1:true,
+					//}
 				}
 				//to use -->"this.viewObjs=camera.viewSearch(this.layer.list,()=>true);"
 			}
 			getCamPos(pos=new Pos){
 				return Space.Pos.add(pos,this.pos);
 			}
-			viewSearch(objs=this.layerRef.list,filter=()=>true,list=[],pos=new Space.Pos(),n=0){
+			portalFilter(relPos){
+				return Boolean(relPos.obj.type.portal);
+			}
+			filter(relPos){
+				return true;
+			}
+			portalErrorHandling(objs,filter,list,camPos,n){
+				if(n>6+numN||list.length>2000){
+					if(false){
+						console.error("portal error: ",camPos);
+						alert("ERROR:too many portal levels : "+n);
+					}
+					return true;
+				}
+				return false;
+			}
+			viewSearch(objs,filter,list,pos,n,portalFilter){
+				{
+					if(objs==undefined)objs=this.layerRef.list;
+					if(!(objs instanceof Array)){
+						filter=objs.filter;
+						list=objs.list;
+						pos=objs.pos;
+						n=objs.n;
+						portalFilter=objs.portalFilter;
+					}
+					if(objs==undefined)objs=this.layerRef.list;
+					if(filter==undefined){filter=this.filter;}
+					if(list==undefined)list=[];
+					if(pos==undefined)pos=new Space.Pos();
+					if(n==undefined)n=0;
+					if(portalFilter==undefined)portalFilter=this.portalFilter;
+				}
+				this.n=n;
 				//function(objs,filter,list,pos,n)
 				let camPos=this.getCamPos(pos);
-				if(n>2||list.length>40){
-					//console.error("portal error: ",camPos);
-					//alert("ERROR:too many portal levels : "+n);
-					return list;
-				}
-				let obj=null;
+				if(this.portalErrorHandling(objs,filter,list,camPos,n))return list;
+				let obj=null;let obj1;
 				for(let i=0;i<objs.length;i++){
 					obj=objs[i];//obj=RefPos;
 					if(obj.obj==this)continue;
-					if(!filter(obj))continue;
-					list.push(new Space.RelPos(obj.obj,Space.Pos.add(obj.pos,camPos)));
-					if(obj.obj.type.portal){
-						obj.obj.viewSearch(objs,filter,list,camPos,n+1);
+					obj1=new Space.RelPos(obj.obj,Space.Pos.add(obj.pos,camPos));
+					if(!filter(obj1))continue;
+					list.push(obj1);
+					try{
+						if(this.portalFilter(obj1)){//
+							obj.obj.viewSearch(undefined,filter,list,camPos,n+1);
+						}
+					}
+					catch(error){
+
 					}
 				}
 				return list;
@@ -42,8 +78,11 @@ Space={
 					this.viewList=this.sprite.viewList;
 					this.viewList.sort((a,b)=>a.coords[1]-b.coords[1]);
 					for(let i=0;i<this.viewList.length;i++){//attach draw-Scripts to Draw Layer
-						if(this.viewList[i].obj.Draw)//test for defined
-						this.viewList[i].obj.Draw.attachDraw(this.viewList[i],this);
+						try{
+							//if(this.viewList[i].obj.Draw)//test for defined
+							this.viewList[i].obj.Draw.attachDraw(this.viewList[i],this);
+						}
+						catch(error){}
 					}
 					this.layerScript();
 				});
@@ -69,7 +108,13 @@ Space={
 			get velocity(){
 				return this.vecT1(this.obj.velocity,this.pos);
 			}
-			vec(vec,pos){
+			set coords(vec){
+				return this.vec_set(this.obj.coords,this.pos);
+			}
+			set velocity(vec){
+				return this.vecT1_set(this.obj.velocity,this.pos);
+			}
+			vec(vec,pos=this.pos){
 				const a=vec;
 				const b=pos;
 				return [
@@ -77,12 +122,26 @@ Space={
 					b.vec[1]+a[0]*b.mat[0][1]+a[1]*b.mat[1][1]
 				];
 			}
-			vecT1(vec,pos){//vec*time^-1
+			vecT1(vec,pos=this.pos){//vec*time^-1
 				const a=vec;
 				const b=pos;
 				return [
 					a[0]*b.mat[0][0]+a[1]*b.mat[1][0],
 					a[0]*b.mat[0][1]+a[1]*b.mat[1][1]
+				];
+			}
+			vec_set(vec,pos=this.pos){
+				let det=1/(pos.mat[0][0]*pos.mat[1][1]-pos.mat[0][1]*pos.mat[1][0]);
+				return[
+					det*((vec[0]-pos.vec[0])*pos.mat[0][0]-(vec[1]-pos.vec[1])*pos.mat[1][0]),
+					det*((vec[1]-pos.vec[1])*pos.mat[1][1]-(vec[0]-pos.vec[0])*pos.mat[0][1]),
+				];
+			}
+			vecT1_set(vec,pos=this.pos){//vec*time^-1
+				let det=1/(pos.mat[0][0]*pos.mat[1][1]-pos.mat[0][1]*pos.mat[1][0]);
+				return[
+					det*(vec[0]*pos.mat[0][0]-(vec[1])*pos.mat[1][0]),
+					det*(vec[1]*pos.mat[1][1]-(vec[0])*pos.mat[0][1]),
 				];
 			}
 		},
@@ -91,7 +150,7 @@ Space={
 				this.mat=[[1,0],[0,1]];
 				this.vec=[0,0];
 			}
-			static add(a,b){
+			static add(a=new this,b=new this){
 				return {
 					mat:[
 						[
@@ -109,7 +168,7 @@ Space={
 					]
 				};
 			}
-			static minus(a,b){
+			static minus(a=new this,b=new this){
 				let det=1/(b.mat[0][0]*b.mat[1][1]-b.mat[0][1]*b.mat[1][0]);
 				return {
 					mat:[
@@ -123,8 +182,8 @@ Space={
 						],
 					],
 					vec:[
-						(a.vec[0]-b.vec[0])*b.mat[0][0]-(a.vec[1]-b.vec[1])*b.mat[1][0],
-						(a.vec[1]-b.vec[1])*b.mat[1][1]-(a.vec[0]-b.vec[0])*b.mat[0][1],
+						det*((a.vec[0]-b.vec[0])*b.mat[0][0]-(a.vec[1]-b.vec[1])*b.mat[1][0]),
+						det*((a.vec[1]-b.vec[1])*b.mat[1][1]-(a.vec[0]-b.vec[0])*b.mat[0][1]),
 					]
 				};
 			}
@@ -141,59 +200,57 @@ Space={
 			newObj.objRelPos=new Space.RelPos();//used only for calculations
 			newObj.getCamPos=function(pos=new Space.Pos()){
 				return Space.Pos.add(Space.Pos.minus(pos,this.portalB.pos),this.pos);
-				//return Space.Pos.add(Space.Pos.minus(pos,this.pos),this.portalB.pos);
+				//pos+(A-B)
 			};
-			newObj.getCamPos2=function(pos=new Space.Pos()){
-				return Space.Pos.add(Space.Pos.minus(pos,this.portalB.pos),this.pos);
-			};
+			newObj.portalFilter=function(relPos){
+				//if(relPos.obj==this.portalB){console.error(relPos);alert("found")}
+				return relPos.obj.type.portal&&relPos.obj!=this.portalB;
+			}
 			//this.onUpdate=onUpdate;
 			newObj.layer=layer;
 			//this.matrixPos=[[1,0],[0,1]];
 			newObj.portalB=new Space.Camera();
 			newObj.width=200;
 			newObj.size=5;
+			newObj.side=true;//side a or b is portaly;
 			newObj.type={
 				shape:"line",
 				portal:{basic1:true},
 			};
-			newObj.giveVecDist=function(collider){//how long will it take to collide?
-				//DE point
-				let dif=Math.undotransform()
-			}
-			newObj.giveOnCollide=function(collider){
-				//collider.detachSpace();
-				collider.layer=this.portalB.layer;
-				if(collider.coords)collider.coords=this.objRelPos.vec(collider.coords,this.getCamPos());//Math.transform(Math.undoTransform(collider.coords,this.matrixPos),this.camera.matrixPos);
-				if(collider.pos)collider.pos=this.getCamPos(collider.pos);//Math.transform(Math.undoTransform(collider.matrixPos,this.matrixPos),this.camera.matrixPos);
-				if(collider.velocity)collider.velocity=this.objRelPos.vec(collider.velocity,this.getCamPos());//Math.transform(Math.undoTransform(collider.coords,this.matrixPos),this.camera.matrixPos);
-				//collider.attachSpace();
+			if(newObj.type.portal.basic1){
+				newObj.tpFilter=function(relPos){
+					if(relPos.obj.type.portal)return false;
+					let c=this.objRelPos.vec(relPos.coords,Space.Pos.minus(new Space.Pos(),this.portalB.pos));
+					let v=Math.minusVec2(this.objRelPos.vec(Math.addVec2(relPos.coords,relPos.velocity),Space.Pos.minus(new Space.Pos(),this.portalB.pos)),c);
+					if(Math.abs(c[0])>0 && (c[0]<0?1:-1)*(c[0]+v[0])>0){//passing through portal plane
+						if(Math.abs(c[1]+v[1])<this.width){
+							return true;
+						}
+					}
+					else{
+						return false;
+					}
+				};
+				newObj.tpOnCollision=function(relPos){
+					relPos.obj.coords=relPos.coords;
+					relPos.obj.velocity=relPos.velocity;
+					relPos.obj.entity.detachLayer();
+					relPos.obj.layer=this.layer;
+					relPos.obj.entity.attachLayer();
+				};
 			}
 			newObj.addCollider=function(){//v -a +b -> v-a  {Vec,Apos,Bpos}
 				this.entity=new Space.RefEntity(this,this.layer);
 				this.tpList=[];//relPos' to be teleported
-				this.searchUpdate1=new mainGame.UpdateScript(this,mainGame.layers.moveMent.list[1],undefined,()=>{
-					this.tpList=this.viewSearch(this.layer.list,(relPos)=>{
-						if(relPos.obj.type.portal)return false;
-						let c=this.objRelPos.vec(relPos.coords,Space.Pos.minus(new Space.Pos(),this.portalB.pos));
-						let v=Math.minusVec2(this.objRelPos.vec(Math.addVec2(relPos.coords,relPos.velocity),Space.Pos.minus(new Space.Pos(),this.portalB.pos)),c);
-						if(Math.abs(c[0])>0 && (c[0]<0?1:-1)*(c[0]+v[0])>0){//passing through portal plane
-							if(Math.abs(c[1]+v[1])<this.width){
-								return true;
-							}
-						}
-						else{
-							return false;
-						}
+				if(this.type.portal.basic1){
+					this.searchUpdate1=new mainGame.UpdateScript(this,mainGame.layers.moveMent.list[1],undefined,()=>{
+						this.tpList=this.portalB.viewSearch(this.layer.list,(relPos)=>this.tpFilter(relPos));
 					});
-				});
+				}
 				this.searchUpdate2=new mainGame.UpdateScript(this,mainGame.layers.moveMent.list[2],undefined,()=>{
 					for(let i=0;i<this.tpList.length;i++){
-						let relPos=new Space.RelPos(this.tpList[i].obj,this.getCamPos2());
-						relPos.obj.coords=relPos.coords;
-						relPos.obj.velocity=relPos.velocity;
-						relPos.obj.entity.detachLayer();
-						relPos.obj.layer=this.layer;
-						relPos.obj.entity.attachLayer();
+						let relPos=this.tpList[i];
+						this.tpOnCollision(relPos);
 					}
 				});
 			}
@@ -212,18 +269,25 @@ Space={
 				}
 			}
 			//attachers
-				attachScripts(){
-					this.attachLayer();
+				attachScripts(layer=this.layer){
+					this.attachLayer(layer);
 				}
-				detachScripts(){
-					this.detachLayer();
+				detachScripts(layer=this.layer){
+					this.detachLayer(layer);
+				}
+				attach(layer=this.layer){
+					this.attachLayer(layer);
+				}
+				detach(layer=this.layer){
+					this.detachLayer(layer);
 				}
 				attachLayer(layer=this.layer){
 					this.id=layer.list.length;
 					layer.list.push(this);
+					this.layer=layer;
 				}
 				detachLayer(layer=this.layer){
-					if(this.id==NaN)return false;
+					if(isNaN(this.id))return false;
 					if(layer.list.length>1&&this.id<layer.list.length-1){
 						layer.list[this.id]=layer.list.pop();
 						layer.list[this.id].id=this.id;
@@ -281,10 +345,10 @@ Space={
 					this.coords=Math.AddVec2(this.coords,this.velocity);
 				});
 			}
-			
+			//this.addDraw=Space.addDraw;
 			return this;
 		},
-		addDraw:function(scripts){
+		addDrawUpdates:function(scripts){//[[UScript{},attachFunc()]]
 			this.Draw={
 				scripts:scripts,
 				attachDraw:function(relPos,layer){
@@ -292,10 +356,10 @@ Space={
 						let relPos1={
 							pos:relPos.pos,
 							scriptObj:this.scripts[i][0],
-							onUpdate:function(){
+							onUpdate:function(layer,i){
 								ctx.save();
 								Draw.transform(relPos.pos);
-								this.scriptObj.onUpdate();
+								this.scriptObj.onUpdate(layer,i);
 								ctx.restore();
 							}
 						};
@@ -307,6 +371,105 @@ Space={
 		},
 	//--------
 };
+Raymarcher={
+	Ray:class{
+		constructor(){
+			this.coords=[0,0];
+			this.velocity=[0,0];
+			this.size=1;
+			this.objs=[];//relPos
+			this.shape="line";
+
+			this.minDist=Infinity;
+			this.minObj=null;
+			this.type={
+				rayMarch:{
+					ray:true,
+				},
+				shape:"line",
+			}
+		}
+		march(objs=this.objs){//ray
+			this.minDist=Infinity;
+			this.minObj=null;
+			for(let i=0;i<objs.length;i++){
+				let dist=Infinity;let isSearching=true;//isLookingForDistanceFunction?
+				if(objs[i].obj.type.rayMarch){
+					let t=objs[i].obj.type.rayMarch;
+					if(t.rayCollider){
+						dist=objs[i].obj.DE[this.type.shape](this);
+						isSearching=false;
+					}
+				}
+				if(isSearching){
+					try{
+						dist=Raymarcher.DE[this.type.shape][objs[i].obj.type.shape](this,objs[i]);
+					}
+					catch(error){
+					}
+					isSearching=false;
+				}
+				if(dist<this.minDist){
+					this.minDist=dist;
+					this.minObj=objs[i];
+				}
+			}
+			return {dist:this.minDist,obj:this.minObj};
+		}
+	},
+	DE:{//DE.Rayshape.objShape()
+		point:{
+
+		},
+		circle:{
+			
+		},
+		line:{
+			line:function(){return Infinity},
+			point:function(ray,relPos){//x+Xt=a y+Yt=b => t =(a-x)/X = (b-x)/X
+				let size=ray.size+relPos.obj.size;
+				if(Math.len2(ray.velocity)==0){
+					return Math.Math.len2(ray.coords,relPos.coords)-ray.size;
+				}
+				let angle=Math.getAngle(ray.velocity,0,1);
+				let c=Math.rotate(Math.dif2(relPos.coords,ray.coords),-angle,0,1);
+				let dist=Math.sqrt(Math.pow(ray.size,2)-Math.pow(c[1],2));
+				let minDist=c[1]-ray.size;
+				if(minDist>0)return Infinity;
+				return dist;
+			},
+			circle:function(ray,relPos){//x+Xt=a y+Yt=b => t =(a-x)/X = (b-x)/X
+				let size=ray.size+relPos.obj.size;
+				if(Math.len2(ray.velocity)==0){
+					return Math.Math.len2(ray.coords,relPos.coords)-size;
+				}
+				let angle=Math.getAngle(ray.velocity,0,1);
+				let c=Math.rotate(Math.dif2(relPos.coords,ray.coords),-angle,0,1);
+				let dist=Math.sqrt(Math.pow(size,2)-Math.pow(c[1],2));
+				let minDist=c[1]-size;
+				if(minDist>0)return Infinity;
+				return dist;
+			},
+			square:function(ray,relPos){//x+Xt=a y+Yt=b => t =(a-x)/X = (b-x)/X
+				let size=ray.size+relPos.obj.size;
+				if(Math.len2(ray.velocity)==0){
+					return Math.Math.len2(ray.coords,relPos.coords)-size;
+				}
+				let angle=Math.getAngle(ray.velocity,0,1);
+				let c=Math.rotate(Math.dif2(relPos.coords,ray.coords),-angle,0,1);
+				let dist=Math.sqrt(Math.pow(size,2)-Math.pow(c[1],2));
+				let minDist=c[1]-size;
+				if(minDist>0)return Infinity;
+				return dist;
+			},
+		},
+	},
+	Collider:class{
+		DE(ray){
+
+		}
+	}
+};
 Sprite={
 	addSprite:function(obj={}){
 		obj.Scripts={
@@ -317,6 +480,7 @@ Sprite={
 		return obj;
 	},
 };
+
 function Detachable(restart=false){//Deletable.call(sprite)
 	if(restart||!("detachScripts"in this))this.detachScripts=function(){//detachScripts
 		let list=this.updateScriptList;
@@ -363,9 +527,9 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 	this.matrixPos=new Space.Pos();//[rotation,coords]
 	this.layer=SpaceLayer;
 	Detachable.call(this);
-	this.PosisionUpdate = new mainGame.UpdateScript(this,layers.physics.list[7],undefined,()=>{
-		this.matrixPos[this.matrixPos.length-1]=this.coords;
-	});
+	//this.PosisionUpdate = new mainGame.UpdateScript(this,layers.physics.list[7],undefined,()=>{
+	//	this.matrixPos[this.matrixPos.length-1]=this.coords;
+	//});
 	(()=>{//extensions
 		this.addDrawing=(colour=this.colour)=>{
 			this.colour=colour;
@@ -433,7 +597,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			this.updateScriptList.push(this.areaDetectorScript);
 			return this;
 		};
-		this.addCamera=(isPlayer=false)=>{
+		this.addCamera=(isPlayer=false,isActive=true)=>{
 			this.cameraObj=new Space.Camera().addDraw();
 			this.type.camera=true;
 			this.viewLayer=this.cameraObj.layerDraw; //layers.draw;
@@ -444,10 +608,10 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					const sprite=this.sprite;
 					ctx.save();
 					ctx.translate(Draw.width/2,Draw.height/2);
-					Draw.undoTransform({vec:this.sprite.coords,mat:sprite.matrixPos.mat});
+					Draw.undoTransform(Space.Pos.add({vec:Math.addVec2(sprite.coords,sprite.matrixPos.vec),mat:sprite.matrixPos.mat},sprite.cameraObj.pos));
 					sprite.viewLayer.onUpdate();
 					ctx.restore();
-				});
+				},true);
 			}
 			else{
 				this.draw_view = new mainGame.UpdateScript(this,layers.draw.list[4],undefined,function(){
@@ -455,7 +619,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					Draw.undoTransform(this.sprite.matrixPos);
 					this.sprite.viewLayer.onUpdate();
 					Draw.transform(this.sprite.matrixPos);
-				});
+				},true);
 			}
 			
 			this.getSpaceLayers=function(){
@@ -465,7 +629,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			}
 			this.objFinderUS=new mainGame.UpdateScript(this,layers.detectors.list[3],undefined,function(){
 				this.sprite.getSpaceLayers();
-			});
+			},true);
 			//this.updateScriptList.push(this.draw_view);
 			switch(this.type.shape){
 				case"circle":
@@ -491,14 +655,36 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 								c=Math.len2(relPos.coords,this.coords);
 								dist=c-this.size;
 						}
+						if(dist<=0)return true;
+						else return false;
+					}
+					else if(obj.type.portal.camera_v1){
+						let obj=relPos.obj.parent();
+						let ang=Math.getAngle(obj.vec2,0,1);
+						let pos=Math.rotate(Math.dif2(this.coords,obj.vec1),-ang,0,1);
+						pos[0]=Math.max(0,Math.abs(pos[0])-Math.len2(obj.vec2));
+						c=Math.len2(pos);
+						dist=c-this.size;
+						if(dist<=0)return true;
+						else return false;
+					}
+					else{
+						return true;
+					}
+					{
+						let dist,c,c1,dif;
+						switch(obj.type.shape){
+							default:
+							//if(relPos.pos.vec[0]!=0){console.log(relPos.pos.vec);alert("it works");}
+								c=Math.len2(relPos.coords,this.coords);
+								dist=c-this.size;
+						}
 						if(dist<=0){
 							return true;
 						}
 						else{
 							return false;
 						}
-					}else{
-						return true;
 					}
 					return true;
 				}
@@ -543,6 +729,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 				minCTime:NaN,
 				minDist:NaN,
 				isColliding:false,
+				velocity:[0,0],
 				newVelocity:Clone(this.velocity),
 				reflectVel:()=>{
 					//phisics part 2: do collisions + move object
@@ -680,6 +867,8 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			this.updateScriptList.push(this.Physics);
 			return this;
 		}
+		this.addPhysics2=()=>{
+		};
 		this.addTraverseable=()=>{
 			this.Movement={
 				update:new mainGame.UpdateScript(this,layers.moveMent.list[8],undefined,()=>{

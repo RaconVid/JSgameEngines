@@ -1,18 +1,12 @@
 to do:
+make chunk generation
 
-menus - pause,options
+extraFunctions1.js - test CloneTo function;
 collider.attachSpace();
 
 eco.js - resetting system
-chunks.js - make: (raymarching and space) engines
-
 add portals
 
-eco.js - drawing{
-	3Dish drawing,
-	draw portals,
-
-}
 
 
 

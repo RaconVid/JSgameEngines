@@ -121,7 +121,7 @@
 	Math.lerpT=function(a,b,s,t1){
 		return b+(a-b)*Math.pow(1-s,t1);
 	};
-	Math.lerpTV=function(a,b,t){
+	Math.lerpTV=function(a,b,s,t1){
 		let c=[];
 		let l=Math.pow(1-s,t1);
 		for (let i = 0; i < a.length; i++) {
