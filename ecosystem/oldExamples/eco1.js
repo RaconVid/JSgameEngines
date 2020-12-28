@@ -39,10 +39,10 @@
 				let sprite={
 
 				};
-				sprite.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(layer,layer_i){
+				sprite.update=new mainGame.UpdateScriptV1_0(sprite,layers.update.list[4],undefined,function(layer,layer_i){
 					const s=this.sprite;
 				})
-				sprite.draw=new mainGame.UpdateScript(sprite,layers.draw.list[4],undefined,function(layer,layer_i){
+				sprite.draw=new mainGame.UpdateScriptV1_0(sprite,layers.draw.list[4],undefined,function(layer,layer_i){
 					const s=this.sprite;
 
 				})
@@ -58,7 +58,7 @@
 				sprite.body=Collider.call(Detachable.call(new Space.Entity(sprite,firstPlane),1),firstPlane).addDrawing().addPhysics().addCamera(true);
 				sprite.body.coords=[300,100];
 				sprite.speed=200;
-				sprite.body.update=new mainGame.UpdateScript(sprite,layers.update.list[4],undefined,function(){
+				sprite.body.update=new mainGame.UpdateScriptV1_0(sprite,layers.update.list[4],undefined,function(){
 					const sprite=this.sprite;
 					const body=this.sprite.body;
 					if(Inputs.getKey("4").onDown){//die
@@ -81,7 +81,7 @@
 					relCoords:[1,0],
 					distFromBody:30,
 					holdingCreature:null,
-					jointUpdate:new mainGame.UpdateScript(sprite,layers.physics.list[6],undefined,function(){
+					jointUpdate:new mainGame.UpdateScriptV1_0(sprite,layers.physics.list[6],undefined,function(){
 						const part=this.sprite.body.hand;
 						const body=this.sprite.body;
 						let mousePos=Math.minusVec2(Inputs.mouse.vec2,[Draw.width/2,Draw.height/2]);
@@ -271,10 +271,10 @@
 		let mousePointer={
 			size:4,
 		}
-		mousePointer.endUpdate=new mainGame.UpdateScript(mousePointer,layers.draw.list[9],undefined,function(){
+		mousePointer.endUpdate=new mainGame.UpdateScriptV1_0(mousePointer,layers.draw.list[9],undefined,function(){
 			Inputs.mouse.onDown=false;
 		},true)
-		mousePointer.draw=new mainGame.UpdateScript(mousePointer,layers.draw.list[7],undefined,function(){
+		mousePointer.draw=new mainGame.UpdateScriptV1_0(mousePointer,layers.draw.list[7],undefined,function(){
 			Draw.circle(Inputs.mouse.x,Inputs.mouse.y,mousePointer.size,"#40A0FF80")
 		},true)
 
@@ -303,7 +303,7 @@
 								menu_Main.goToMenu("mainGame");
 							},
 						});
-						newObj.update=new mainGame.UpdateScript(newObj,layers.update.list[4],undefined,function(){
+						newObj.update=new mainGame.UpdateScriptV1_0(newObj,layers.update.list[4],undefined,function(){
 							const s=this.sprite;
 							let mouse=Inputs.mouse.vec2;
 							let dist=Math.len2([
@@ -322,7 +322,7 @@
 								s.isHover=false;
 							}
 						},true);
-						newObj.draw=new mainGame.UpdateScript(newObj,layers.draw.list[4],undefined,function(){
+						newObj.draw=new mainGame.UpdateScriptV1_0(newObj,layers.draw.list[4],undefined,function(){
 							const s=this.sprite;
 							ctx.translate(s.coords[0],s.coords[1]);
 							ctx.fillStyle="blue";
@@ -368,7 +368,7 @@
 						ctx.restore();
 					}
 				},
-				draw:new mainGame.UpdateScript(mousePointer,layers.draw.list[7],undefined,()=>{
+				draw:new mainGame.UpdateScriptV1_0(mousePointer,layers.draw.list[7],undefined,()=>{
 					menu_Main.drawScript();
 				},true),
 			});

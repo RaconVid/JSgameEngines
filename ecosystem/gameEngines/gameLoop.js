@@ -16,7 +16,8 @@ class MainGame{
 		];
 	}
 	construct_Classes(){
-		this.UpdateScript=class{
+		//Version 0.1.0
+		this.UpdateScriptV1_0=class{
 			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
 				this.isDeleting=false;
 				this.sprite=sprite;
@@ -52,7 +53,18 @@ class MainGame{
 			onUpdate(layer,layer_i){
 				this.script(layer,layer_i);
 			}
-		}
+		};
+		//Version 0.1.1
+		this.UpdateScript=class extends this.UpdateScriptV1_0{
+			constructor(getLayer=v=>null,script=function(layer,layer_i){},sprite=null){
+				super(sprite,getLayer(),undefined,script);
+				this.onUpdate=function(layer,i,pos){
+					this.isDeleting=(0===1*this.script(layer,i,pos));
+					//if(returns false or 0){delete script}
+				}
+				this.getLayer=getLayer;
+			}
+		};
 		this.UpdateLayer=class{
 			constructor(onUpdate=()=>{this.layerScript();},list=[]){
 				this.onUpdate=onUpdate;
@@ -76,7 +88,7 @@ class MainGame{
 					i--;
 				}
 			};
-		}
+		};
 		this.RefLinker=class{
 			constructor(){
 				this.a=null;
@@ -88,7 +100,7 @@ class MainGame{
 			attach(){
 
 			}
-		}
+		};
 	}
 	construct_Consts(){
 		this.time=new Time();

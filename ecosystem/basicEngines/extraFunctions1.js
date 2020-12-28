@@ -72,6 +72,6 @@ class Refference{
 	}
 }
 loga=function(log="",alertText=""){
-	console.log(log);alert(alertText);
+	console.error(log);alert(alertText);
 }
 //InjectClass()
