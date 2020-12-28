@@ -335,7 +335,7 @@
 			this.cameraObj.viewList=objs;
 			return objs;
 		}
-		newObj.baseEntity=baceEntity;
+		newObj.baceEntity=baceEntity;
 		let power=0;
 		let rock1={
 			//vars:{
@@ -421,9 +421,29 @@
 					let a=0;
 					let x=rock1.coords[0];
 					let y=rock1.coords[1];
-					let sz=rock1.size*2;
-					ctx.drawImage(Images.rock,x-sz/2,y-sz/2,sz,sz);
-					let txt=Math.round(baceEntity.coords[0]);//Math.round(power*100);
+					let sz=rock1.size;
+					//ctx.drawImage(Images.rock,x-sz,y-sz,sz/2,sz/2);
+					{
+						ctx.save();
+						ctx.translate(x,y);
+						ctx.scale(sz,sz);
+						ctx.beginPath();
+						ctx.moveTo(1,0);
+						ctx.quadraticCurveTo(1,1,0,1);
+						ctx.quadraticCurveTo(-1,1,-1,0);
+						ctx.quadraticCurveTo(-1,-1,0,-1);
+						ctx.quadraticCurveTo(1,-1,1,0);
+						ctx.lineWidth=0.3;
+						ctx.strokeStyle="grey";
+						ctx.fillStyle="darkGrey";
+						ctx.closePath();
+						ctx.fill();
+						ctx.stroke();
+						ctx.scale(1/sz,1/sz);
+						ctx.translate(-x,-y);
+						ctx.restore();
+					}
+					let txt=baceEntity.layer.coords;//Math.round(power*100);
 					ctx.fillText(txt,x,y);
 				},(draw)=>draw.list[3]],
 			},
@@ -661,6 +681,7 @@
 		let neighbours=[[0,0],[0,1],[1,0],[1,1]]
 		for(let y=0;y<mapSize[1];y++){
 			for(let x=0;x<mapSize[0];x++){
+				mapChunks[y][x].coords=[x,y];
 				for(let i=0;i<neighbours.length;i++){
 					let joinCoords=[
 						(x+(neighbours[i][0]==0)*(neighbours[i][1]*2-1)+mapSize[0])%mapSize[0],
