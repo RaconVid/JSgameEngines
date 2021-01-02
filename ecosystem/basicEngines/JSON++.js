@@ -2,79 +2,91 @@ JSON.list=function(object){
 	let objs=[];//list of original objects
 	let refs=[];//objs->index pointers (semi compiled)
 	let index;
-	const add=function(obj){
+	const add=function(value){
 		index=objs.length;
-		objs[index]=obj;
+		objs[index]=value;
 		refs[index]=({});
 		return index;
 	}
 	let refIndex=index=>index;//"::"+index+"::";
-	const addCaller=function(obj,currentTree,returnFunc){
+	const addCaller=function(value,currentTree,returnFunc){
 		let o={
-			obj:obj,
+			value:value,
+			//name:"",
+			//parent:null,
 			currentTree:currentTree,
 			returnFunc:returnFunc,
 		};
 		callBack.push(o);
 	}
 	const returnFuncGen=(objClone,i)=>v=>{objClone[i]=v;return v;};
-	const cloneStep=function({obj,currentTree=[],returnFunc=v=>v}){
+	const cloneStep=function({value,currentTree=[]}){
 		trees.push(currentTree);
-		let objClone,index,i,val;
-		if(typeof obj == "function"){
+		let objClone,index,i;
+		if(typeof value == "function"){
 			if(currentTree[currentTree.length-1]=="toJSON"){
-				return obj;
+				return value;
 			}
-			return "("+obj+")";//"FUNCTION";//
+			return false?"("+value+")":"FUNCTION";
 		}
-		if(typeof obj == "string"){
-			return JSON.stringify(obj);
+		if(typeof value == "string"){
+			return JSON.stringify(value);
 		}
-		if(typeof obj !== "object"){
-			return "("+obj+")";
+		if(typeof value !== "object"){
+			return "("+value+")";
 		}
-		if(obj === null)return "(null)";
+		if(value === null)return "(null)";
 		
-		index=objs.indexOf(obj);
+		index=objs.indexOf(value);
 		if(index!=-1){
 			return refIndex(index);
 		}
-		if(obj instanceof Array){
-			index=add(obj);
+		if("toJSON"in value){
+			if(typeof value.toJSON=="function"){
+				currentTree.push("toJSON()");
+				value=value.toJSON();
+				//loga(currentTree)
+			}
+			else{
+				currentTree.push("toJSON{}");
+			}
+		}
+		if(value instanceof Array){
+			index=add(value);
 			objClone=[];
-			for(i=0; i<obj.length; i++){
+			for(i=0; i<value.length; i++){
 				currentTree.push(i);
-				addCaller(obj[i],currentTree.map(v=>v),returnFuncGen(objClone,i));//objClone[i]=cloneStep(obj[i]);
+				addCaller(value[i],currentTree.map(v=>v),returnFuncGen(objClone,i));//objClone[i]=cloneStep(value[i]);
 				currentTree.pop();
 			}
 			refs[index]=objClone;
 			return refIndex(index);//return(objClone);
 		}
-		if(obj instanceof Object){
-			index=add(obj);
+		if(value instanceof Object){
+			index=add(value);
 			objClone={};
-			for(i in obj){if(obj.hasOwnProperty(i))
+			for(i in value){if(value.hasOwnProperty(i)){
 				currentTree.push(i);
-				addCaller(obj[i],currentTree.map(v=>v),returnFuncGen(objClone,i));//objClone[i]=cloneStep(obj[i]);
+				addCaller(value[i],currentTree.map(v=>v),returnFuncGen(objClone,i));//objClone[i]=cloneStep(value[i]);
 				currentTree.pop();
-			}
+			}}
 			refs[index]=objClone;
 			return refIndex(index);//return(objClone);
 		}
 	}
 	let currentTree=[];
 	let trees=[];
-	let callBack=[{obj:object}];
-	
+	let callBack=[];
 	let obj2=[];
-	for(let i=0;i<callBack.length;i++){
+	obj2.push(cloneStep({value:object}));
+	for(let i=0;i<callBack.length&&i<10000;i++){
 		callBack[i].returnFunc(obj2.push(cloneStep(callBack[i])));
 	}
 	return{
-		objs:objs,
-		refs:refs,
-		obj2:obj2,
-		trees:trees,
+		objs:objs,//list of different objects
+		refs:refs,//objs.compile (mainOutput)
+		obj2:obj2,//list of all values
+		trees:trees,//unneeded
 	};
 	//eval("("+v+")")
 	//JSON.stringify(JSON.list(mainGame).refs).length

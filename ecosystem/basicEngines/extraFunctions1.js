@@ -38,6 +38,12 @@ CloneTo=function(data,ref){//Clone data to existing object(i.e. "ref")
 		for(var i=0; i<data.length; i++){
 			ref[i]=Clone(data[i]);
 		}
+		if(ref instanceof Array){
+			let len=ref.length-data.length;
+			for(let i=0; i<len; i++){
+				ref.pop();
+			}
+		}
 		return(ref);
 	}
 	if(data instanceof Refference){

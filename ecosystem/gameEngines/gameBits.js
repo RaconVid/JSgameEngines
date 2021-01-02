@@ -1,5 +1,5 @@
-Space={
-	//--------
+//Space
+	Space={
 		Camera:class{
 			constructor(){window.numN=1;//to delete: testing
 				this.coords=[0,0];
@@ -22,9 +22,6 @@ Space={
 				if(relPos.obj.type.portal){
 					if(relPos.obj.type.portal.basic_v1)return false;
 					if(relPos.obj.type.portal.camera_v1){
-						//let a=(Math.len2(relPos.pos.vec)<Math.len2(relPos.obj.getCamPos(relPos.pos).vec));
-						//console.log(a);alert()
-						//return a;
 						return true;
 					}
 					return true;
@@ -35,8 +32,8 @@ Space={
 				return true;
 			}
 			portalErrorHandling(objs,filter,list,camPos,n){
-				if(n>15+numN||list.length>2000){
-					if(0){
+				if(n>15+numN||list.length>20000){//20,000
+					if(1){
 						//window.myER1=(()=>{let a=[];list.map(v=>{if(a.indexOf(v.obj)==-1)a.push(v.obj);});return a;}) ();
 						//window.myER2=arguments;
 						//window.myER3=list.map(v=>([myER1.indexOf(v.obj),...v.pos.vec]));
@@ -49,7 +46,60 @@ Space={
 				}
 				return false;
 			}
-			viewSearch(objs,filter,list,pos,n,portalFilter,portalList){
+			viewSearch(objs,filter,list,pos,n,portalFilter,portalList,toDo){
+				//function(objs,filter,list,pos,n)
+				{
+					if(objs==undefined)objs=this.layerRef.list;
+					if(!(objs instanceof Array)){
+						filter=objs.filter;
+						list=objs.list;
+						pos=objs.pos;
+						n=objs.n;
+						portalFilter=objs.portalFilter;
+					}
+					if(objs==undefined)objs=this.layerRef.list;
+					if(filter==undefined){filter=this.filter;}
+					if(list==undefined)list=[];
+					if(pos==undefined)pos=new Space.Pos();
+					if(n==undefined)n=0;
+					if(portalFilter==undefined)portalFilter=this.portalFilter;
+					if(portalList==undefined)portalList=[];
+					if(toDo==undefined)toDo=[];
+				}
+				//if(n>-1&&portalList.indexOf(objs)>0)return list;
+				//else portalList.push(objs);
+				this.n=n;
+				let camPos=this.getCamPos(pos);
+				if(this.portalErrorHandling(objs,filter,list,camPos,n))return list;
+				// both obj and obj1 are an instanceof relPos (relativePosisions) 
+				for(let i=0;i<objs.length;i++){
+					let obj=objs[i];//obj=RefPos;
+					if(obj.obj==this)continue;
+					let obj1=new Space.RelPos(obj.obj,Space.Pos.add(obj.pos,camPos));
+					if(!filter(obj1,list,obj))continue;
+					list.push(obj1);
+					{//if object contains more objects
+						if(obj.obj.type)
+						if(obj.obj.type.chunk)
+						if(obj.obj.list instanceof Array)
+						if(obj.obj.list.length>0){
+							let newPos=Space.Pos.minus(obj1.pos,this.getCamPos());
+							newPos.vec=Math.addVec2(newPos.vec,obj1.obj.coords);
+							toDo.push(()=>this.viewSearch(obj.obj.list,filter,list,newPos,n+1,portalFilter,portalList,toDo));//obj1.pos
+						}
+					}
+					if(this.portalFilter)if(!this.portalFilter(obj1))continue;
+					//if(portalFilter)if(!portalFilter(obj1))continue;
+					toDo.push(()=>obj.obj.viewSearch(undefined,filter,list,camPos,n+1,({}.u),portalList,toDo));
+				}
+				if(n<2){
+					for(let i=0;i<4000&&toDo.length>0;i++){
+						toDo.shift()();
+					}
+				}
+				return list;
+			}
+			viewSearchOld(objs,filter,list,pos,n,portalFilter,portalList){
 				{
 					if(objs==undefined)objs=this.layerRef.list;
 					if(!(objs instanceof Array)){
@@ -219,9 +269,12 @@ Space={
 				return p;
 			}
 		},
-	//--------
-		RefEntity:class{
+	};
+	Space={
+		...Space,
+		RefEntity:class extends Space.RelPos{
 			constructor(obj=null,layer=undefined){
+				super(obj)
 				//Detachable.call(this);
 				this.id=NaN;
 				this.obj=obj;
@@ -260,34 +313,11 @@ Space={
 					this.id=NaN;
 					return true;
 				}
-			//---- pos
-				get coords(){
-					return this.vec(this.obj.coords,this.pos);
-				}
-				get velocity(){
-					return this.vecT1(this.obj.velocity,this.pos);
-				}
-				vec(vec,pos){
-					const a=vec;
-					const b=pos;
-					return [
-						b.vec[0]+a[0]*b.mat[0][0]+a[1]*b.mat[1][0],
-						b.vec[1]+a[0]*b.mat[0][1]+a[1]*b.mat[1][1]
-					];
-				}
-				vecT1(vec,pos){//vec*time^-1
-					const a=vec;
-					const b=pos;
-					return [
-						a[0]*b.mat[0][0]+a[1]*b.mat[1][0],
-						a[0]*b.mat[0][1]+a[1]*b.mat[1][1]
-					];
-				}
-			//----
 		},
 		Chunk:class{
 			constructor(list=[],onUpdate){
 				this.onUpdate=onUpdate;
+				this.portals={list:[]};
 				this.list=list;//[Entity,Entity];layer.list[i].get_coords; or
 			}
 		},
@@ -336,33 +366,8 @@ Space={
 			}
 			return this;
 		},
-		bind:function(scripts){//[[UScript{},attachFunc()]]
-			this.Draw={
-				scripts:scripts,
-				attachDraw:function(relPos,layer){
-					for(let i=0;i<this.scripts.length;i++){
-						let relPos1={
-							pos:relPos.pos,
-							scriptObj:this.scripts[i][0],
-							onUpdate:function(layer,i){
-								ctx.save();
-								Draw.transform(relPos.pos);
-								if(typeof this.scriptObj=="function")this.scriptObj(layer,i,this.pos);
-								else this.scriptObj.onUpdate(layer,i,this.pos);
-								ctx.restore();
-							}
-						};
-						this.scripts[i][1](layer).list.push(relPos1);
-					}
-				},
-				destructor:function(){
-					this.scripts=[];
-				},
-			}
-			return this;
-		},
-	//--------
-};
+	};
+//----
 Raymarcher={
 	Ray:class{
 		constructor(){
@@ -464,11 +469,34 @@ Raymarcher={
 };
 Sprite={
 	addSprite:function(obj={}){
-		obj.Scripts={
-			Draw:Detachable.call({
-				sprite:obj,
-			})
-		};
+		CloneTo(addDrawUpdates.call({
+			coords:[0,0],
+			velocity:[0,0],
+			type:{Sprite_v1:true},
+			scripts:{
+
+			},
+			entRefs:{
+				main:new Space.RefEntity(obj),
+			},
+			get layer(){return this.entRefs.main.layer},
+			set layer(layerNew){
+				baceEntity.entRefs.main.detach();
+				baceEntity.entRefs.main.attach(layerNew);
+			},
+			goto:Sprite.add.movement.GoTo(function(oldLayer,layer){
+				//this.entRef.main.detach(oldLayer);
+				//this.entRef.main.attach(layer);
+				this.layer=layer;
+			}),
+			camera:Collider.call({
+				entity:obj,
+				get coords(){return this.entity.coords;},
+				get velocity(){return this.entity.velocity;},
+				get layer(){return this.entity.layer;},
+			}).addCamera(),
+			...obj,
+		}),obj);
 		return obj;
 	},
 	add:{
@@ -501,17 +529,24 @@ Sprite={
 							onMove1_2_others();
 							if(oldLayer!=layer){
 								reattach.call(this,oldLayer,layer);
+								if(layer.portals==undefined){console.log(this,layer instanceof Space.Chunk);alert()}//TESTING
 								onMove1_1_searchView();
 							}
 							if(Math.len2(coords,goTo)==0)break;
 						}
-						if(i>4){console.log("movement error");alert(i)}
+						if(i>4){console.error("movement error",i);alert("ERROR: movement error"+i)}
 				};
-				let onMove1_1_searchView=function(){
+				const onMove1_1_searchView=function(){
 					oldLayer=layer;
 					//find Objs In view (walls/portals)
 					objsInView=[];
-					let list=layer.list;
+					let list;
+					try{//TESTING
+						list=layer.portals.list;
+					}
+					catch(e){
+						list=layer.list;
+					}
 					for(let i=0;i<list.length;i++){
 						if(list[i]==undefined){
 							list[i]=list.pop();
@@ -536,7 +571,7 @@ Sprite={
 						}catch(error){}}
 					}
 				};
-				let onMove1_2_others=function(){
+				const onMove1_2_others=function(){
 					//find nearest wall/portal
 						let list=objsInView;
 						minObj=null;
@@ -544,7 +579,7 @@ Sprite={
 						for(let i=0;i<list.length;i++){
 							if(list[i].obj==lastPortal)continue;
 							if(minDist==0)break;
-							if(list[i].obj==undefined){console.log(list[i].obj);alert(":(")}
+							if(list[i].obj==undefined){console.error(list[i].obj);alert("ERROR :(")}
 							let wallType=list[i].obj.type.wall;
 							if(wallType.vector){
 								let dif=Math.dif2(list[i].obj.vec1,coords);
@@ -582,18 +617,19 @@ Sprite={
 								if(portalType.basic_v1){
 									let vec=Math.minusVec2(obj.portalB().vec1,obj.vec1);
 									coords=Math.addVec2(coords,vec);
-									goTo=CloneTo(Math.addVec2(goTo,vec),goTo);
+									CloneTo(Math.addVec2(goTo,vec),goTo);
 									layer=obj.portalB().layer;
 									lastPortal=obj.portalB();
 								}
 								else{
-									({})();
+									hitWall=true;
+									//({})();//error
 								}
 							}catch(error){
 								hitWall=true;
 							}
 						}
-						CloneTo(coords,coordsPointer);
+						coords=CloneTo(coords,coordsPointer);
 
 						//testing only
 						if(false)if(minObj!=null){console.log(coords,coordsPointer);
@@ -645,19 +681,19 @@ Collider_Interactions={
 };
 function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).addPhysics(layer...);
 	const layers=mainGame.layers;
-	this.keywords={
+	if(!("keywords"in this))this.keywords={
 		all:1,
 		colour:"#00FF88",
 	};
-	this.type={
+	if(!("type"in this))this.type={
 		shape:"circle",
 	}
-	this.colour=this.keywords.colour;
-	this.size=10;
-	this.coords=[0,0];//new Space.Pos();
-	this.velocity=[0,0];//new Space.Pos();
-	this.matrixPos=new Space.Pos();//[rotation,coords]
-	this.layer=SpaceLayer;
+	if(!("colour"in this))this.colour=this.keywords.colour;
+	if(!("size"in this))this.size=10;
+	if(!("coords"in this))this.coords=[0,0];//new Space.Pos();
+	if(!("velocity"in this))this.velocity=[0,0];//new Space.Pos();
+	if(!("matrixPos"in this))this.matrixPos=new Space.Pos();//[rotation,coords]
+	if(!("layer"in this))this.layer=SpaceLayer;
 	Detachable.call(this);
 	//this.PosisionUpdate = new mainGame.UpdateScriptV1_0(this,layers.physics.list[7],undefined,()=>{
 	//	this.matrixPos[this.matrixPos.length-1]=this.coords;
@@ -730,6 +766,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			return this;
 		};
 		this.addCamera=(isPlayer=false,isActive=true,)=>{
+
 			this.cameraObj=new Space.Camera().addDraw();
 			this.type.camera=true;
 			this.viewLayer=this.cameraObj.layerDraw; //layers.draw;
@@ -745,7 +782,8 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					ctx.rect(...this.sprite.view_rect);
 					ctx.clip();
 					ctx.translate(this.sprite.view_rect[0]+this.sprite.view_rect[2]/2,this.sprite.view_rect[1]+this.sprite.view_rect[3]/2)//ctx.translate(Draw.width/2,Draw.height/2);
-					Draw.undoTransform(Space.Pos.add({vec:Math.addVec2(sprite.coords,sprite.matrixPos.vec),mat:sprite.matrixPos.mat},sprite.cameraObj.pos));
+					Draw.transform(Space.Pos.add(sprite.matrixPos,sprite.cameraObj.pos));
+					ctx.translate(-sprite.coords[0],-sprite.coords[1]);
 					sprite.viewLayer.onUpdate();
 					ctx.restore();
 				},true);

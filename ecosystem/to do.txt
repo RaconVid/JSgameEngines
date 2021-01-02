@@ -1,21 +1,16 @@
 to do:
 
-extraFunctions1.js - test CloneTo function;
 collider.attachSpace();
 
-eco.js - resetting system
+eco.js - resetting system:{
+	save,load,
+}
 add portals:{
 	cave portals
 }
 
 portal bugs:[
-	{GLITCH!!!:unknown edge case where entities can go past portals instead of through them},
-	camera.draw doesnt work for the first frame after entering a portal,
-
-	Cameras wont see portals in [0,y] and [x,0] if the world is <2x2 chunks,
-
-	creatures act strange if (camera.size > world.radius) i.e. if can see multiple of the same object at different dists,
-
+	(if world < 2x2 chunks) then Cameras wont see portals in [0,y] and [x,0] ,
 ];
 
 

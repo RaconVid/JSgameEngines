@@ -119,11 +119,14 @@ class MainGame{
 			this.parent.time.startLoop();
 		};
 		this.loop=0;
+		this.i=0;
 		this.mainLoop=()=>{
 			if(!this.endLoop){
 				this.orderLength=this.updateOrder.length;
 				for (let i = 0; i < this.orderLength&&i < this.updateOrder.length; i++) {
+					this.i=i;
 					this.updateOrder[i].onUpdate();
+					i=this.i;
 				}
 				if(!this.endLoop){
 					//window.cancelAnimationFrame(this.loop);

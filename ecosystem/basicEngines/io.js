@@ -39,12 +39,12 @@ class IOEngine{
 					-pos.vec[0],
 					-pos.vec[1],
 				);
-				let det=pos.mat[0]*pos.mat[1]-pos.mat[1]*pos.mat[0];
+				let det=pos.mat[0][0]*pos.mat[1][1]-pos.mat[1][0]*pos.mat[0][1];
 				ctx.transform(
-					pos.mat[1]/det,
-					-pos.mat[1]/det,
-					-pos.mat[0]/det,
-					pos.mat[0]/det,
+					pos.mat[0][0]/det,
+					-pos.mat[0][1]/det,
+					-pos.mat[1][0]/det,
+					pos.mat[1][1]/det,
 					0,0,
 				);
 			}
