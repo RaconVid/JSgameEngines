@@ -1,5 +1,5 @@
 (function(){//load main game
-	{
+	{//set up maingame UpdateLayers
 		mainGame=new MainGame()
 		mainGame.layers={
 			update:new mainGame.UpdateLayer(),
@@ -38,14 +38,15 @@
 				})
 			]
 		}
-		let a=60;
-		if(0)new mainGame.UpdateScript(a=>mainGame.layers.draw,()=>{
+		let a=1/60;//debug UI
+		if(1)new mainGame.UpdateScript(a=>mainGame.layers.draw,()=>{
 			Draw.square(100,100,10,"#AA884040");
 			ctx.font="30px Arial";
 			ctx.fillStyle="white";
-			let b=1/mainGame.time.delta;
-			a=Math.lerp(a,b,0.1)
-			ctx.fillText((a),100,100)
+			let b=mainGame.time.delta;
+			a=Math.lerp(a,b,0.5);
+			//seconds per frame
+			ctx.fillText("spf:"+Math.floor(a*10000)/10000,100,100)
 			ctx.fillText(world.player2.camera.cameraObj.viewList.length,100,140)
 		})
 	}
@@ -53,9 +54,9 @@
 	world={};
 	world.chunk1=new Space.Chunk();
 	world.worldChunks1=(()=>{
-		let mapScale=4;
+		let mapScale=20;
 		let mapSize=[mapScale,mapScale];
-		let chunkSize=800;//diamiter
+		let chunkSize=400;//diamiter
 		let makeChunk=function(newChunk=new Space.Chunk()){//adjacentLayers
 			newChunk.size=chunkSize;
 			let makeSide=function(){
@@ -396,7 +397,7 @@
 					entity.mainEntRef.detach();
 					entity.mainEntRef.attach(layerNew);
 				},
-				type:{},
+				type:{shape:"circle"},
 				keywords:{rock:true,player:true},size:10,
 				mainEntRef:null,
 				coords:[0,0],
@@ -454,271 +455,278 @@
 		return newObj;
 	})();
 	world.creature1=(()=>{//rock?
-		let newObj={};
-		let startT=0;
-		let makeBaceEntity=function(layer,size){
-			let baceEntity={
-				//bace_entity:{
-					coords:[0,0],
-					velocity:[0,0],
-					type:{chunk:true},
-					list:[],
-					keywords:{},
-					entRefs:{
-						main:null,
+		let makeRock=function(coords=[0,0].map(v=>Math.random()*100)){
+			let newObj={};
+			let startT=0;
+			let makeBaceEntity=function(layer,size){
+				let baceEntity={
+					//bace_entity:{
+						coords:[0,0],
+						velocity:[0,0],
+						type:{chunk:true,shape:"circle"},
 						list:[],
-					},
-					toJSON:function(){
+						keywords:{},
+						entRefs:{
+							main:null,
+							list:[],
+						},
+						toJSON:function(){
 
-					},
-					destructor:function(){
+						},
+						destructor:function(){
 
+						},
+					//}
+					scripts:{
+						redoRefferenceEntities:new mainGame.UpdateScript(()=>L.update.list[7],function(){
+							let self=baceEntity;
+							self.setUpRefEnts();
+						}),
 					},
-				//}
-				scripts:{
-					redoRefferenceEntities:new mainGame.UpdateScript(()=>L.update.list[7],function(){
-						let self=baceEntity;
-						self.setUpRefEnts();
-					}),
-				},
-				//basicfunctions:{
-					setUpRefEnts(){
-						//return;
-						let self=baceEntity;
-						for(let i=0;i<self.entRefs.list.length;i++){
-							let entRef=self.entRefs.list[i];
-							entRef.detach();
-						}
-						CloneTo([],self.entRefs.list);
-						let refEnts=[self.entRefs.main];
-						let checkedLists=[];
+					//basicfunctions:{
+						setUpRefEnts(){
+							return;
+							let self=baceEntity;
+							for(let i=0;i<self.entRefs.list.length;i++){
+								let entRef=self.entRefs.list[i];
+								entRef.detach();
+							}
+							CloneTo([],self.entRefs.list);
+							let refEnts=[self.entRefs.main];
+							let checkedLists=[];
 
-						const bail=10;
-						let size=self.size;
-						let i;
-						for(i=0;i<bail&&refEnts.length>0;i++){//while 
-							let len=refEnts.length;
-							for(let i=0;i<len;i++){
-								let refEnt=refEnts.shift();
-								let list=refEnt.layer.portals.list;
-								if(checkedLists.indexOf(refEnt.layer)!=-1){
-									refEnt.detach();
-									continue;
-								}
-								checkedLists.push(refEnt.layer);
-								let objsInView=[];
-								for(let i=0;i<list.length;i++){
-									if(list[i]==undefined){
-										list[i]=list.pop();
-										list[i].id=i;
-										i--;
+							const bail=10;
+							let size=self.size;
+							let i;
+							for(i=0;i<bail&&refEnts.length>0;i++){//while 
+								let len=refEnts.length;
+								for(let i=0;i<len;i++){
+									let refEnt=refEnts.shift();
+									let list=refEnt.layer.portals.list;
+									if(checkedLists.indexOf(refEnt.layer)!=-1){
+										refEnt.detach();
 										continue;
 									}
-									try{
-										let portalType=list[i].obj.type.portal;
+									checkedLists.push(refEnt.layer);
+									let objsInView=[];
+									for(let i=0;i<list.length;i++){
+										if(list[i]==undefined){
+											list[i]=list.pop();
+											list[i].id=i;
+											i--;
+											continue;
+										}
+										try{
+											let portalType=list[i].obj.type.portal;
+											if(portalType.basic_v1){
+												objsInView.push(list[i]);
+											}
+											else{
+												//({})();//cause Error
+											}
+										}catch(e){}
+									}
+									for(let i=0;i<objsInView.length;i++){
+										let relpos=objsInView[i];
+										let portalType=relpos.obj.type.portal;
+										dist=Infinity;
 										if(portalType.basic_v1){
-											objsInView.push(list[i]);
+											//note: c = a.pos->{-b.pos}->{rotate(-b.vec.angle)}
+											//let c=Math.rotate(Math.dif2(refEnt.coords,relpos.obj.vec1),-Math.getAngle(relpos.vec(relpos.obj.vec2,refEnt.pos),0,1),0,1);
+											//c[0]=c[0]>0?Math.max(0,c[0]-Math.len2(relpos.obj.vec2)):c[0];
+											let c=Math.addVec2(refEnt.pos.vec,Math.minusVec2(relpos.obj.portalB().vec1,relpos.obj.vec1))
+											dist=Math.len2(c);
+										}
+										if(dist<=size&&dist>Math.len2(refEnt.pos.vec)){//create new refEnt
+											let newRef=new Space.RefEntity(self,relpos.obj.portalB().layer);
+											self.entRefs.list.push(newRef);
+											newRef.pos.vec=Math.addVec2(refEnt.pos.vec,Math.minusVec2(relpos.obj.portalB().vec1,relpos.obj.vec1))
+											refEnts.push(newRef);
 										}
 										else{
-											//({})();//cause Error
-										}
-									}catch(e){}
-								}
-								for(let i=0;i<objsInView.length;i++){
-									let relpos=objsInView[i];
-									let portalType=relpos.obj.type.portal;
-									dist=Infinity;
-									if(portalType.basic_v1){
-										//note: c = a.pos->{-b.pos}->{rotate(-b.vec.angle)}
-										//let c=Math.rotate(Math.dif2(refEnt.coords,relpos.obj.vec1),-Math.getAngle(relpos.vec(relpos.obj.vec2,refEnt.pos),0,1),0,1);
-										//c[0]=c[0]>0?Math.max(0,c[0]-Math.len2(relpos.obj.vec2)):c[0];
-										let c=Math.addVec2(refEnt.pos.vec,Math.minusVec2(relpos.obj.portalB().vec1,relpos.obj.vec1))
-										dist=Math.len2(c);
-									}
-									if(dist<=size&&dist>Math.len2(refEnt.pos.vec)){//create new refEnt
-										let newRef=new Space.RefEntity(self,relpos.obj.portalB().layer);
-										self.entRefs.list.push(newRef);
-										newRef.pos.vec=Math.addVec2(refEnt.pos.vec,Math.minusVec2(relpos.obj.portalB().vec1,relpos.obj.vec1))
-										refEnts.push(newRef);
-									}
-									else{
 
+										}
+									}
+								}
+							}
+							if(i>=bail){
+								if(true){
+									console.error("::entity existing through too many portals::");
+									alert("entity portal error");
+								}
+							}
+						},
+						goto:Sprite.add.movement.GoTo(function(layerOld,layerNew){
+							baceEntity.layer=layerNew;
+						}),
+						get layer(){return this.entRefs.main.layer},
+						set layer(layerNew){
+							baceEntity.entRefs.main.detach();
+							baceEntity.entRefs.main.attach(layerNew);
+							baceEntity.setUpRefEnts();
+						},
+					//},
+				};
+				let baceEntRef=new Space.RefEntity(baceEntity,world.chunk1);
+				baceEntity.entRefs.main=baceEntRef;
+				baceEntity.size=size;
+				baceEntity.setUpRefEnts();
+				return baceEntity;
+			};
+			let baceEntity=makeBaceEntity(world.chunk1,20);
+			let camera=Collider.call({}).addCamera(0,0);
+			Object.defineProperties(camera,{
+				coords:{get:function(){return baceEntity.coords;}},
+				velocity:{get:function(){return baceEntity.velocity;}},
+				layer:{get:function(){return baceEntity.layer;}},
+			});
+			camera.size=100;
+			newObj.baceEntity=baceEntity;
+			let power=0;
+			let rock1={
+				//vars:{
+					view:[],
+					momentum:[0,0],
+					maxPower:0.9999,
+					timers:[0,0,0,0,0],
+					modes:[0,0,0,0,0,],
+					powerAngle:0,
+				//},
+				scripts:{
+					onStart:new mainGame.UpdateScript(()=>L.update.list[4],function(layer,i){
+						const self=rock1;
+						return false;
+					}),
+					update1:new mainGame.UpdateScript(()=>L.update.list[3],(layer,i)=>{
+						const self=rock1;
+						let list=camera.cameraObj.viewList;
+						self.view=[];
+						for(let i=0;i<list.length;i++){
+							let canSee=false;
+							let obj=list[i].obj;
+							if(obj==baceEntity)continue;
+							if(obj==rock1)continue;
+							if(!obj.keywords)continue;
+							if(obj.type.portal)continue;
+							if("rock" in obj.keywords)canSee=true;
+							if("metalic" in obj.keywords)canSee=true;
+							if("scissors" in obj.keywords)canSee=true;
+							if("paper" in obj.keywords)canSee=true;
+							if(!canSee)continue;
+							self.view.push(list[i]);
+						}
+						let view=[];
+						let minObj=null;
+						let minDist=Infinity;
+						let objs=[];
+						let dists=[];
+						const dt=mainGame.time.delta;
+						list=self.view;
+						for(let i=0;i<list.length;i++){
+							if(list[i].obj.keywords.rock){
+								let dist=Math.len2(list[i].coords,baceEntity.coords);
+								let sides=4;
+								let angle=Math.PI*2*(1.125)+Math.getAngle(Math.dif2(list[i].coords,baceEntity.coords),0,1);
+								let shapeSize=1/Math.cos(Math.abs((angle%(Math.PI*2/sides))-Math.PI/sides));
+								let size=(list[i].obj.size+rock1.size)*shapeSize;
+								if(dist>0&&dist<size*4){
+									let force=
+										dist<=size+2?Math.clamp(0,1,dt*20)*(dist-size)/Math.max(1,dist/(0.5*size))/dist
+									:0;
+									let fvec=Math.dif2(list[i].coords,baceEntity.coords);
+
+									baceEntity.goto(Math.addVec2(baceEntity.coords,Math.scaleVec2(fvec,force/2)));
+									list[i].obj.goto(list[i].vec_set(Math.addVec2(list[i].coords,Math.scaleVec2(fvec,-force/2))));
+								}
+								dist=Math.len2(list[i].coords,baceEntity.coords);
+								if(dist<200){
+									if(minDist>dist&&dist>0){
+										minDist=dist;
+										minObj=list[i];
 									}
 								}
 							}
 						}
-						if(i>=bail){
-							if(true){
-								console.error("::entity existing through too many portals::");
-								alert("entity portal error");
+						const mp=0.01;//minPower
+						if(minObj!=null){
+							let len=minDist;
+							self.powerAngle+=dt*0.4;
+							self.powerAngle%=1;
+							power=Math.lerpT(power,Math.pow(Math.sin(self.powerAngle*Math.PI*2),2),0.9,dt);
+							if(typeof minObj.obj.keywords!="object")console.error(minObj.obj.keywords)
+							if("rock" in minObj.obj.keywords){
+								if(len>0){
+									let size=rock1.size+minObj.obj.size;
+									if(1)baceEntity.goto(Math.lerpT2(baceEntity.coords,minObj.coords,-1,dt*power));
+								}
 							}
 						}
-					},
-					goto:Sprite.add.movement.GoTo(function(layerOld,layerNew){
-						baceEntity.layer=layerNew;
+						else{
+							const dt=mainGame.time.delta;
+							self.powerAngle=Math.lerp(self.powerAngle,0.5,0.5*dt);
+						}
 					}),
-					get layer(){return this.entRefs.main.layer},
-					set layer(layerNew){
-						baceEntity.entRefs.main.detach();
-						baceEntity.entRefs.main.attach(layerNew);
-						baceEntity.setUpRefEnts();
+				},
+				costumes:{
+					main:[(layer,i,pos)=>{
+						let a=0;
+						let x=rock1.coords[0];
+						let y=rock1.coords[1];
+						let sz=rock1.size;
+						//ctx.drawImage(Images.rock,x-sz,y-sz,sz/2,sz/2);
+						{
+							ctx.save();
+							ctx.translate(x,y);
+							ctx.scale(sz,sz);
+							ctx.beginPath();
+							ctx.moveTo(1,0);
+							ctx.quadraticCurveTo(1,1,0,1);
+							ctx.quadraticCurveTo(-1,1,-1,0);
+							ctx.quadraticCurveTo(-1,-1,0,-1);
+							ctx.quadraticCurveTo(1,-1,1,0);
+							ctx.lineWidth=0.3;
+							ctx.strokeStyle="grey";
+							ctx.fillStyle="darkGrey";
+							ctx.closePath();
+							ctx.fill();
+							ctx.stroke();
+							ctx.scale(1/sz,1/sz);
+							ctx.translate(-x,-y);
+							ctx.restore();
+						}
+						//let txt=baceEntity.layer.coords;//Math.round(power*100);
+						//ctx.fillText(txt,x,y);
+					},(draw)=>draw.list[3]],
+				},
+				//basic{
+					coords:[0,0],
+					velocity:[0,0],
+					size:15,
+					entRef:null,
+					goto:function(coords){
+						return baceEntity.goto(Math.addVec2(coords,baceEntity.coords));
+					},
+					state:{},
+					type:{state:true},
+					keywords:{
+						rock:{},
+						metalic:false,
 					},
 				//},
 			};
-			let baceEntRef=new Space.RefEntity(baceEntity,world.chunk1);
-			baceEntity.entRefs.main=baceEntRef;
-			baceEntity.size=size;
-			baceEntity.setUpRefEnts();
-			return baceEntity;
-		};
-		let baceEntity=makeBaceEntity(world.chunk1,100);
-		let camera=Collider.call({}).addCamera();
-		Object.defineProperties(camera,{
-			coords:{get:function(){return baceEntity.coords;}},
-			velocity:{get:function(){return baceEntity.velocity;}},
-			layer:{get:function(){return baceEntity.layer;}},
-		});
-		camera.size=200;
-		newObj.baceEntity=baceEntity;
-		let power=0;
-		let rock1={
-			//vars:{
-				view:[],
-				momentum:[0,0],
-				maxPower:0.9999,
-				timers:[0,0,0,0,0],
-				modes:[0,0,0,0,0,],
-				powerAngle:0,
-			//},
-			scripts:{
-				onStart:new mainGame.UpdateScript(()=>L.update.list[4],function(layer,i){
-					const self=rock1;
-					return false;
-				}),
-				update1:new mainGame.UpdateScript(()=>L.update.list[3],(layer,i)=>{
-					const self=rock1;
-					let list=camera.cameraObj.viewList;
-					self.view=[];
-					for(let i=0;i<list.length;i++){
-						let canSee=false;
-						let obj=list[i].obj;
-						if(obj==baceEntity)continue;
-						if(obj==rock1)continue;
-						if(!obj.keywords)continue;
-						if(obj.type.portal)continue;
-						if("rock" in obj.keywords)canSee=true;
-						if("metalic" in obj.keywords)canSee=true;
-						if("scissors" in obj.keywords)canSee=true;
-						if("paper" in obj.keywords)canSee=true;
-						if(!canSee)continue;
-						self.view.push(list[i]);
-					}
-					let view=[];
-					let minObj=null;
-					let minDist=Infinity;
-					let objs=[];
-					let dists=[];
-					const dt=mainGame.time.delta;
-					list=self.view;
-					for(let i=0;i<list.length;i++){
-						if(list[i].obj.keywords.rock){
-							let dist=Math.len2(list[i].coords,baceEntity.coords);
-							let sides=4;
-							let angle=Math.PI*2*(1.125)+Math.getAngle(Math.dif2(list[i].coords,baceEntity.coords),0,1);
-							let shapeSize=0.+1/Math.cos(Math.abs((angle%(Math.PI*2/sides))-Math.PI/sides));
-							let size=list[i].obj.size+rock1.size*shapeSize;
-							if(dist>0)if(dist<size*4){
-								let force=
-									dist<=size+2?Math.clamp(0,1,dt*20)*(dist-size)/Math.max(1,dist/(0.5*size))/dist
-								:0;
-								let fvec=Math.dif2(list[i].coords,baceEntity.coords);
-
-								baceEntity.goto(Math.addVec2(baceEntity.coords,Math.scaleVec2(fvec,force/2)));
-								list[i].obj.goto.call(list[i].obj,list[i].vec_set(Math.addVec2(list[i].coords,Math.scaleVec2(fvec,-force/2))));
-							}
-							dist=Math.len2(list[i].coords,baceEntity.coords);
-							if(dist<200){
-								if(minDist>dist&&dist>0){
-									minDist=dist;
-									minObj=list[i];
-								}
-							}
-						}
-					}
-					const mp=0.01;//minPower
-					if(minObj!=null){
-						let len=minDist;
-						self.powerAngle+=dt*0.4;
-						self.powerAngle%=1;
-						power=Math.lerpT(power,Math.pow(Math.sin(self.powerAngle*Math.PI*2),2),0.9,dt);
-						if(typeof minObj.obj.keywords!="object")console.error(minObj.obj.keywords)
-						if("rock" in minObj.obj.keywords){
-							if(len>0){
-								let size=rock1.size+minObj.obj.size;
-								if(1)baceEntity.goto(Math.lerpT2(baceEntity.coords,minObj.coords,(len-size)/len,dt*power));
-							}
-							
-						}
-					}
-					else{
-						const dt=mainGame.time.delta;
-						self.powerAngle=Math.lerp(self.powerAngle,0.5,0.5*dt);
-					}
-				}),
-			},
-			costumes:{
-				main:[(layer,i,pos)=>{
-					let a=0;
-					let x=rock1.coords[0];
-					let y=rock1.coords[1];
-					let sz=rock1.size;
-					//ctx.drawImage(Images.rock,x-sz,y-sz,sz/2,sz/2);
-					{
-						ctx.save();
-						ctx.translate(x,y);
-						ctx.scale(sz,sz);
-						ctx.beginPath();
-						ctx.moveTo(1,0);
-						ctx.quadraticCurveTo(1,1,0,1);
-						ctx.quadraticCurveTo(-1,1,-1,0);
-						ctx.quadraticCurveTo(-1,-1,0,-1);
-						ctx.quadraticCurveTo(1,-1,1,0);
-						ctx.lineWidth=0.3;
-						ctx.strokeStyle="grey";
-						ctx.fillStyle="darkGrey";
-						ctx.closePath();
-						ctx.fill();
-						ctx.stroke();
-						ctx.scale(1/sz,1/sz);
-						ctx.translate(-x,-y);
-						ctx.restore();
-					}
-					let txt=baceEntity.layer.coords;//Math.round(power*100);
-					ctx.fillText(txt,x,y);
-				},(draw)=>draw.list[3]],
-			},
-			//basic{
-				coords:[0,0],
-				velocity:[0,0],
-				size:15,
-				entRef:null,
-				goto:function(coords){
-					return baceEntity.goto(coords);
-				},
-				state:{},
-				type:{state:true},
-				keywords:{
-					rock:{},
-					metalic:false,
-				},
-			//},
-		};
-		newObj.rock1=rock1;
-		rock1.entRef=new Space.RefEntity(rock1,baceEntity);
-		Space.addDrawUpdates.call(rock1,[
-			rock1.costumes.main,
-		])
-		return newObj;
+			newObj.rock1=rock1;
+			rock1.entRef=new Space.RefEntity(rock1,baceEntity);
+			Space.addDrawUpdates.call(rock1,[
+				rock1.costumes.main,
+			]);
+			rock1.goto(coords);
+			return newObj;
+		}
+		let rocks=[];
+		for(let i=0;i<100;i++){
+			rocks.push(makeRock());//[0,0]
+		}
+		return rocks;
 	})();
 	world.basicObj=(()=>{
 		let refEnt=new Space.RefEntity({
@@ -747,8 +755,6 @@
 		};
 		return refEnt;
 	})();
-
-
 	world.s=(()=>{
 		let newObj={};
 		return newObj;

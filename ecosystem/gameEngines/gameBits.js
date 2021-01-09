@@ -224,6 +224,43 @@
 				this.mat=mat==undefined?[[1,0],[0,1]]:mat;
 				this.vec=vec==undefined?[0,0]:vec;
 			}
+			add(b){
+				return new this.prototype({
+					mat:[
+						[
+							this.mat[0][0]*b.mat[0][0]+this.mat[0][1]*b.mat[1][0],
+							this.mat[0][0]*b.mat[0][1]+this.mat[0][1]*b.mat[1][1]
+						],
+						[
+							this.mat[1][0]*b.mat[0][0]+this.mat[1][1]*b.mat[1][0],
+							this.mat[1][0]*b.mat[0][1]+this.mat[1][1]*b.mat[1][1]
+						],
+					],
+					vec:[
+						b.vec[0]+this.vec[0]*b.mat[0][0]+this.vec[1]*b.mat[1][0],
+						b.vec[1]+this.vec[0]*b.mat[0][1]+this.vec[1]*b.mat[1][1]
+					]
+				});
+			}
+			minus(a=new this,b=new this){
+				let det=1/(b.mat[0][0]*b.mat[1][1]-b.mat[0][1]*b.mat[1][0]);
+				return {
+					mat:[
+						[
+							det*(a.mat[0][0]*b.mat[1][1]-a.mat[0][1]*b.mat[1][0]),
+							det*(-a.mat[0][0]*b.mat[0][1]+a.mat[0][1]*b.mat[0][0])
+						],
+						[
+							det*(a.mat[1][0]*b.mat[1][1]-a.mat[1][1]*b.mat[1][0]),
+							det*(-a.mat[1][0]*b.mat[0][1]+a.mat[1][1]*b.mat[0][0])
+						],
+					],
+					vec:[
+						det*((a.vec[0]-b.vec[0])*b.mat[0][0]-(a.vec[1]-b.vec[1])*b.mat[1][0]),
+						det*((a.vec[1]-b.vec[1])*b.mat[1][1]-(a.vec[0]-b.vec[0])*b.mat[0][1]),
+					]
+				};
+			}
 			static add(a=new this,b=new this){
 				return {
 					mat:[
@@ -328,11 +365,11 @@
 		},
 		addEntity:function(layer=undefined){//addEntity.call(this)
 			Detachable.call(this);
-			this.coords=[0,0];
-			this.velocity=[0,0];
-			this.pos=new Space.Pos();
-			this.layer=layer;
-			this.entity=new Space.RefEntity(this,layer);
+			if(!"coords" in this)this.coords=[0,0];
+			if(!"velocity" in this)this.velocity=[0,0];
+			if(!"pos" in this)this.pos=new Space.Pos();
+			if(!"layer" in this)this.layer=layer;
+			if(!"entity" in this)this.entity=new Space.RefEntity(this,layer);
 			if(false){
 				this.PosisionUpdate = new mainGame.UpdateScriptV1_0(this,layers.physics.list[8],undefined,()=>{
 					this.coords=Math.AddVec2(this.coords,this.velocity);
@@ -879,6 +916,31 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 							return false;
 						}
 					}
+					if(1&&obj.type.shape){
+						let dist,c,c1,dif;
+						switch(obj.type.shape){
+							case "wall"://vector wall
+								c=Math.rotate(Math.dif2(this.coords,relPos.coords),-Math.getAngle(relPos.vec(relPos.velocity,this.pos),0,1),0,1);
+								c[0]=c[0]>0?Math.max(0,c[0]-Math.len2(relPos.obj.vec2)):c[0];
+								dist=Math.len2(c)-this.size;
+							break;
+							case"circle":
+								c=Math.len2(relPos.coords,this.coords);
+								dist=c-this.size;
+								if(dist<=0)return true;
+							break;
+							default:
+							//if(relPos.pos.vec[0]!=0){console.log(relPos.pos.vec);alert("it works");}
+							c=Math.len2(relPos.coords,this.coords);
+							dist=c-this.size;
+						}
+						if(dist<=0){
+							return true;
+						}
+						else{
+							return false;
+						}
+					}
 					return true;
 				}
 				break;
@@ -1071,7 +1133,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			};
 			return this;
 		}
-		this.addTraverseable();
+		//this.addTraverseable();
 	})();
 	return this;
 }
