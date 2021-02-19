@@ -160,13 +160,17 @@ class IOEngine{
 				}
 				this.mouse=new this.Mouse();
 				this.keys={current:false};
-				this.htmlObject=htmlObject;
+				this.htmlObject=htmlObject;//canvas
 			}
 			start(htmlObject=this.htmlObject){
-				this.htmlObject=htmlObject;
+				this.htmlObject=htmlObject;//htmlObject=canvas
 				let windowFunctions={
 					keydown:(event)=>{
 						if(event.key in this.keys){
+							this.keys.current=event.key;
+							this.keys[event.key].down=true;
+						}
+						if(event.code in this.keys){
 							this.keys.current=event.key;
 							this.keys[event.key].down=true;
 						}
@@ -174,10 +178,12 @@ class IOEngine{
 					keyup:(event)=>{
 						if(event.key in this.keys)
 						this.keys[event.key].down=false;
+						if(event.code in this.keys)
+						this.keys[event.code].down=false;
 					},
 				};
 				let functions={
-					mousemove:(event)=>{alert
+					mousemove:(event)=>{
 						this.mouse.x=event.clientX/Draw.scale;
 						this.mouse.y=event.clientY/Draw.scale;
 					},
@@ -215,7 +221,7 @@ class IOEngine{
 			}
 			startLoop(){
 				let endTime=this.real;
-				if(endTime-this.start>0)this.delta=Math.min(1/15,endTime-this.start);
+				if(endTime-this.start>0)this.delta=(endTime-this.start);
 				this.start=endTime;
 			}
 		};

@@ -32,11 +32,19 @@ JSON.list=function(object){
 		if(typeof value == "string"){
 			return JSON.stringify(value);
 		}
+		if(value === null)return "(null)";
+		if(typeof value == "symbol"){
+			index=objs.indexOf(value);
+			if(index!=-1){
+				return refIndex(index);
+			}else{
+				index=add(value);
+				return refIndex(index);
+			}
+		}
 		if(typeof value !== "object"){
 			return "("+value+")";
 		}
-		if(value === null)return "(null)";
-		
 		index=objs.indexOf(value);
 		if(index!=-1){
 			return refIndex(index);
@@ -45,26 +53,15 @@ JSON.list=function(object){
 			if(typeof value.toJSON=="function"){
 				currentTree.push("toJSON()");
 				value=value.toJSON();
-				//loga(currentTree)
 			}
 			else{
 				currentTree.push("toJSON{}");
 			}
 		}
-		if(value instanceof Array){
-			index=add(value);
-			objClone=[];
-			for(i=0; i<value.length; i++){
-				currentTree.push(i);
-				addCaller(value[i],currentTree.map(v=>v),returnFuncGen(objClone,i));//objClone[i]=cloneStep(value[i]);
-				currentTree.pop();
-			}
-			refs[index]=objClone;
-			return refIndex(index);//return(objClone);
-		}
 		if(value instanceof Object){
 			index=add(value);
-			objClone={};
+			if(value instanceof Array)objClone=[];
+			else objClone={};
 			for(i in value){if(value.hasOwnProperty(i)){
 				currentTree.push(i);
 				addCaller(value[i],currentTree.map(v=>v),returnFuncGen(objClone,i));//objClone[i]=cloneStep(value[i]);
@@ -79,7 +76,7 @@ JSON.list=function(object){
 	let callBack=[];
 	let obj2=[];
 	obj2.push(cloneStep({value:object}));
-	for(let i=0;i<callBack.length&&i<10000;i++){
+	for(let i=0;i<callBack.length&&i*0<10000;i++){
 		callBack[i].returnFunc(obj2.push(cloneStep(callBack[i])));
 	}
 	return{

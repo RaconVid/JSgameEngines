@@ -9,9 +9,6 @@
 				this.n=0;
 				this.type={
 					shape:"point",
-					//portal:{
-						//basic1:true,
-					//}
 				}
 				//to use -->"this.viewObjs=camera.viewSearch(this.layer.list,()=>true);"
 			}
@@ -33,20 +30,24 @@
 			}
 			portalErrorHandling(objs,filter,list,camPos,n){
 				if(n>15+numN||list.length>20000){//20,000
-					if(1){
+					if(0){
 						//window.myER1=(()=>{let a=[];list.map(v=>{if(a.indexOf(v.obj)==-1)a.push(v.obj);});return a;}) ();
 						//window.myER2=arguments;
 						//window.myER3=list.map(v=>([myER1.indexOf(v.obj),...v.pos.vec]));
 						//window.myER4=(()=>{let a=myER3.map(v=>v.join(","));let b={};for(let i of a){if(!(i in b))b[i]=1;else b[i]++;}return b;})();
 						//console.log("portal error: ",window.myER1);
 						console.error("portal error: ",camPos);
+						debugger;
 						alert("ERROR:too many portal levels : "+n+", list:"+list.length);
+						throw "ERROR:too many portal levels : "+n+", list:"+list.length;
 					}
 					return true;
 				}
 				return false;
 			}
-			viewSearch(objs,filter,list,pos,n,portalFilter,portalList,toDo){
+			get viewSearch(){return this.viewSearchV1_2}
+			set viewSearch(val){this.viewSearchV1_2=val;}
+			viewSearchV1_1(objs,filter,list,pos,n,portalFilter,portalList,toDo){
 				//function(objs,filter,list,pos,n)
 				{
 					if(objs==undefined)objs=this.layerRef.list;
@@ -74,7 +75,7 @@
 				// both obj and obj1 are an instanceof relPos (relativePosisions) 
 				for(let i=0;i<objs.length;i++){
 					let obj=objs[i];//obj=RefPos;
-					if(obj.obj==this)continue;
+					/*TESTING*/if(!TESTING)if(obj.obj==this)continue;
 					let obj1=new Space.RelPos(obj.obj,Space.Pos.add(obj.pos,camPos));
 					if(!filter(obj1,list,obj))continue;
 					list.push(obj1);
@@ -85,12 +86,12 @@
 						if(obj.obj.list.length>0){
 							let newPos=Space.Pos.minus(obj1.pos,this.getCamPos());
 							newPos.vec=Math.addVec2(newPos.vec,obj1.obj.coords);
-							toDo.push(()=>this.viewSearch(obj.obj.list,filter,list,newPos,n+1,portalFilter,portalList,toDo));//obj1.pos
+							toDo.push(()=>this.viewSearchV1_1(obj.obj.list,filter,list,newPos,n+1,portalFilter,portalList,toDo));//obj1.pos
 						}
 					}
 					if(this.portalFilter)if(!this.portalFilter(obj1))continue;
 					//if(portalFilter)if(!portalFilter(obj1))continue;
-					toDo.push(()=>obj.obj.viewSearch(undefined,filter,list,camPos,n+1,({}.u),portalList,toDo));
+					toDo.push(()=>obj.obj.viewSearchV1_1(undefined,filter,list,camPos,n+1,({}.u),portalList,toDo));
 				}
 				if(n<2){
 					for(let i=0;i<4000&&toDo.length>0;i++){
@@ -99,7 +100,13 @@
 				}
 				return list;
 			}
-			viewSearchOld(objs,filter,list,pos,n,portalFilter,portalList){
+			static *viewSearchV1_2(camRelPos){
+				for(let relPos of relPos.pos.layer){
+					let obj=relPos;
+					yield relPos;
+				}
+			}
+			static viewSearchOld(objs,filter,list,pos,n,portalFilter,portalList){
 				{
 					if(objs==undefined)objs=this.layerRef.list;
 					if(!(objs instanceof Array)){
@@ -152,11 +159,8 @@
 					this.viewList=this.sprite.viewList;
 					this.viewList.sort((a,b)=>a.coords[1]-b.coords[1]);
 					for(let i=0;i<this.viewList.length;i++){//attach draw-Scripts to Draw Layer
-						try{
-							//if(this.viewList[i].obj.Draw)//test for defined
+						if(this.viewList[i].obj.Draw)
 							this.viewList[i].obj.Draw.attachDraw(this.viewList[i],this);
-						}
-						catch(error){}
 					}
 					this.layerScript();
 				});
@@ -171,10 +175,11 @@
 				return this;
 			}
 		},
-		RelPos:class{
+		/*RelPos:class{
 			constructor(obj,pos=new Space.Pos(),posT1=new Space.Pos()){
 				this.obj=obj;
 				this.pos=pos;
+				//this.layer=
 			}
 			get coords(){
 				return this.vec(this.obj.coords,this.pos);
@@ -218,14 +223,84 @@
 					det*(vec[1]*pos.mat[1][1]-(vec[0])*pos.mat[0][1]),
 				];
 			}
+		},*/
+		RelPos:class{
+			this;obj;proxy;
+			constructor(obj,pos=new Space.Pos(),posT1=new Space.Pos()){
+				this.obj=obj;
+				this.pos=pos;
+				this.this=this;
+				this.proxy=new Proxy(this,this);
+				//return new Proxy(this,this);
+			}//receiver.prop=()=>target.prop;
+			//obj,property,relPos
+			get(obj, prop, proxy){//obj == relpos == this
+				if(prop in this)return this[prop];
+				return this.obj[prop];
+			}
+			set(obj, prop, value,proxy){
+				if(prop in this)this[prop]=value;
+				else this.obj[prop]=value;
+				return true;
+			}
+			get coords(){
+				return this.vec(this.obj.coords,this.pos);
+			}
+			get velocity(){
+				return this.vecT1(this.obj.velocity,this.pos);
+			}
+			set coords(vec){
+				this.obj.coords = this.vec_set(this.obj.coords,this.pos);
+			}
+			set velocity(vec){
+				this.obj.velocity = this.vecT1_set(this.obj.velocity,this.pos);
+			}
+			vec(vec,pos=this.pos){
+				//return [pos.vec[0]+vec[0],pos.vec[1]+vec[1]];
+				const a=vec;
+				const b=pos;
+				return [
+					b.vec[0]+a[0]*b.mat[0][0]+a[1]*b.mat[1][0],
+					b.vec[1]+a[0]*b.mat[0][1]+a[1]*b.mat[1][1]
+				];
+			}
+			vecT1(vec,pos=this.pos){//vec*time^-1
+				//return [vec[0],vec[1]];
+				const a=vec;
+				const b=pos;
+				return [
+					a[0]*b.mat[0][0]+a[1]*b.mat[1][0],
+					a[0]*b.mat[0][1]+a[1]*b.mat[1][1]
+				];
+			}
+			vec_set(vec,pos=this.pos){
+				//return [vec[0]-pos.vec[0],vec[1]-pos.vec[1]];
+				let det=1/(pos.mat[0][0]*pos.mat[1][1]-pos.mat[0][1]*pos.mat[1][0]);
+				return[
+					det*((vec[0]-pos.vec[0])*pos.mat[0][0]-(vec[1]-pos.vec[1])*pos.mat[1][0]),
+					det*((vec[1]-pos.vec[1])*pos.mat[1][1]-(vec[0]-pos.vec[0])*pos.mat[0][1]),
+				];
+			}
+			vecT1_set(vec,pos=this.pos){//vec*time^-1
+				//return [vec[0],vec[1]];
+				let det=1/(pos.mat[0][0]*pos.mat[1][1]-pos.mat[0][1]*pos.mat[1][0]);
+				return[
+					det*(vec[0]*pos.mat[0][0]-(vec[1])*pos.mat[1][0]),
+					det*(vec[1]*pos.mat[1][1]-(vec[0])*pos.mat[0][1]),
+				];
+			}
 		},
 		Pos:class{
-			constructor({vec,mat}={}){
-				this.mat=mat==undefined?[[1,0],[0,1]]:mat;
-				this.vec=vec==undefined?[0,0]:vec;
+			constructor({vec,mat,layer}={}){
+				if(vec)this.vec=vec;
+				if(mat)this.mat=mat;
+				if(layer)this.layer=layer;
 			}
+			mat=[[1,0],[0,1]];
+			vec=[0,0];
+			//layer=undefined;
 			add(b){
-				return new this.prototype({
+				return new this.constructor({
 					mat:[
 						[
 							this.mat[0][0]*b.mat[0][0]+this.mat[0][1]*b.mat[1][0],
@@ -242,9 +317,15 @@
 					]
 				});
 			}
-			minus(a=new this,b=new this){
+			minus(b){
+				let a;
+				if(b==undefined){
+					b=this;
+					a=new this.constructor();
+				}
+				a=this;
 				let det=1/(b.mat[0][0]*b.mat[1][1]-b.mat[0][1]*b.mat[1][0]);
-				return {
+				return new this.constructor({
 					mat:[
 						[
 							det*(a.mat[0][0]*b.mat[1][1]-a.mat[0][1]*b.mat[1][0]),
@@ -259,10 +340,10 @@
 						det*((a.vec[0]-b.vec[0])*b.mat[0][0]-(a.vec[1]-b.vec[1])*b.mat[1][0]),
 						det*((a.vec[1]-b.vec[1])*b.mat[1][1]-(a.vec[0]-b.vec[0])*b.mat[0][1]),
 					]
-				};
+				});
 			}
 			static add(a=new this,b=new this){
-				return {
+				return new this({
 					mat:[
 						[
 							a.mat[0][0]*b.mat[0][0]+a.mat[0][1]*b.mat[1][0],
@@ -271,17 +352,17 @@
 						[
 							a.mat[1][0]*b.mat[0][0]+a.mat[1][1]*b.mat[1][0],
 							a.mat[1][0]*b.mat[0][1]+a.mat[1][1]*b.mat[1][1]
-						],
+						]
 					],
 					vec:[
 						b.vec[0]+a.vec[0]*b.mat[0][0]+a.vec[1]*b.mat[1][0],
 						b.vec[1]+a.vec[0]*b.mat[0][1]+a.vec[1]*b.mat[1][1]
 					]
-				};
+				})
 			}
 			static minus(a=new this,b=new this){
 				let det=1/(b.mat[0][0]*b.mat[1][1]-b.mat[0][1]*b.mat[1][0]);
-				return {
+				return new this({
 					mat:[
 						[
 							det*(a.mat[0][0]*b.mat[1][1]-a.mat[0][1]*b.mat[1][0]),
@@ -296,7 +377,7 @@
 						det*((a.vec[0]-b.vec[0])*b.mat[0][0]-(a.vec[1]-b.vec[1])*b.mat[1][0]),
 						det*((a.vec[1]-b.vec[1])*b.mat[1][1]-(a.vec[0]-b.vec[0])*b.mat[0][1]),
 					]
-				};
+				});
 			}
 			static get Pos(){
 				const p={	
@@ -311,21 +392,49 @@
 		...Space,
 		RefEntity:class extends Space.RelPos{
 			constructor(obj=null,layer=undefined){
-				super(obj)
+				super(obj);
 				//Detachable.call(this);
 				this.id=NaN;
 				this.obj=obj;
-				this.layer=layer;
-				this.pos=new Space.Pos();
-				if(layer !=undefined){
-					this.attachLayer(layer);
+				this.objVal=obj;
+				this.pos=new Space.Pos({layer:layer});
+				this.insideGoTo=false;
+				if(layer){
+					this.attach(layer);
 				}
 			}
+			goto(){
+
+			}
+			get coords(){
+				if(this.insideGoTo){
+					return this.obj.coords;
+				}
+				else{
+					return this.vec(this.obj.coords,this.pos);
+				}
+			}
+			set coords(val){
+				if(this.insideGoTo){
+					this.obj.coords=coords;
+				}
+				else{
+					this.insideGoTo=true;
+					this.goto(this.vec_set(val,this.pos));
+					this.insideGoTo=false;
+				}
+			}
+			getProxy(){//un-used
+				return this.proxy;
+			}
 			//attachers
-				attachScripts(layer=this.layer){
+				//obsolete = dont use 
+				get layer(){return this.pos.layer};//obsolete
+				set layer(v){this.pos.layer=v};//obsolete
+				attachScripts(layer=this.layer){//obsolete
 					this.attachLayer(layer);
 				}
-				detachScripts(layer=this.layer){
+				detachScripts(layer=this.layer){//obsolete
 					this.detachLayer(layer);
 				}
 				attach(layer=this.layer){
@@ -336,7 +445,7 @@
 				}
 				attachLayer(layer=this.layer){
 					this.id=layer.list.length;
-					layer.list.push(this);
+					layer.list.push(this);//this.proxy
 					this.layer=layer;
 				}
 				detachLayer(layer=this.layer){
@@ -357,19 +466,40 @@
 				this.portals={list:[]};
 				this.list=list;//[Entity,Entity];layer.list[i].get_coords; or
 			}
+			*[Symbol.iterator](){//unfinished
+				for(let i of this.list){
+					yield this.list[i];
+				}
+			}
 		},
-		Entity:class{
+		Entity:class{// extends refEntity //Entity
 			constructor(layer=undefined){
 				Space.addEntity.call(this,layer);
 			}
+			coords=[0,0];
+			velocity=[0,0];
+			type={};
 		},
-		addEntity:function(layer=undefined){//addEntity.call(this)
-			Detachable.call(this);
-			if(!"coords" in this)this.coords=[0,0];
-			if(!"velocity" in this)this.velocity=[0,0];
-			if(!"pos" in this)this.pos=new Space.Pos();
-			if(!"layer" in this)this.layer=layer;
-			if(!"entity" in this)this.entity=new Space.RefEntity(this,layer);
+		DrawSymbol:Symbol("Draw"),//unused
+		addEntity(layer=undefined){//addEntity.call(this)
+			//Detachable.call(this);
+			const prototype={
+				coords:[0,0],
+				velocity:[0,0],
+				pos:new Space.Pos(),
+				layer:null,
+				refEntity:new Space.RefEntity(this,layer),
+				type:{},
+
+				goto(coords){return this.refEntity.goto(...arguments);},
+				clone(){return Object.create(this)},
+				delete(){this.refEntity.detach();},
+			};
+			for(let i in prototype){
+				if(!(i in this)){
+					this[i]=prototype[i];
+				}
+			}
 			if(false){
 				this.PosisionUpdate = new mainGame.UpdateScriptV1_0(this,layers.physics.list[8],undefined,()=>{
 					this.coords=Math.AddVec2(this.coords,this.velocity);
@@ -382,12 +512,13 @@
 			this.Draw={
 				scripts:scripts,
 				attachDraw:function(relPos,layer){
-					for(let i=0;i<this.scripts.length;i++){
+					for(let i in this.scripts){//for(let i=0;i<this.scripts.length;i++){
 						let relPos1={
 							pos:relPos.pos,
 							scriptObj:this.scripts[i][0],
 							onUpdate:function(layer,i){
 								ctx.save();
+								ctx.translate(...Math.minusVec2(relPos.coords,relPos.pos.vec));
 								Draw.transform(relPos.pos);
 								if(typeof this.scriptObj=="function")this.scriptObj(layer,i,this.pos);
 								else this.scriptObj.onUpdate(layer,i,this.pos);
@@ -405,154 +536,153 @@
 		},
 	};
 //----
-Raymarcher={
-	Ray:class{
-		constructor(){
-			this.coords=[0,0];
-			this.velocity=[0,0];
-			this.size=1;
-			this.objs=[];//relPos
-			this.shape="line";
-
-			this.minDist=Infinity;
-			this.minObj=null;
-			this.type={
-				rayMarch:{
-					ray:true,
-				},
-				shape:"line",
-			}
-		}
-		march(objs=this.objs){//ray
-			this.minDist=Infinity;
-			this.minObj=null;
-			for(let i=0;i<objs.length;i++){
-				let dist=Infinity;let isSearching=true;//isLookingForDistanceFunction?
-				if(objs[i].obj.type.rayMarch){
-					let t=objs[i].obj.type.rayMarch;
-					if(t.rayCollider){
-						dist=objs[i].obj.DE[this.type.shape](this);
-						isSearching=false;
-					}
-				}
-				if(isSearching){
-					try{
-						dist=Raymarcher.DE[this.type.shape][objs[i].obj.type.shape](this,objs[i]);
-					}
-					catch(error){
-					}
-					isSearching=false;
-				}
-				if(dist<this.minDist){
-					this.minDist=dist;
-					this.minObj=objs[i];
-				}
-			}
-			return {dist:this.minDist,obj:this.minObj};
-		}
-	},
-	DE:{//DE.Rayshape.objShape()
-		point:{
-
-		},
-		circle:{
-			
-		},
-		line:{
-			line:function(){return Infinity},
-			point:function(ray,relPos){//x+Xt=a y+Yt=b => t =(a-x)/X = (b-x)/X
-				let size=ray.size+relPos.obj.size;
-				if(Math.len2(ray.velocity)==0){
-					return Math.Math.len2(ray.coords,relPos.coords)-ray.size;
-				}
-				let angle=Math.getAngle(ray.velocity,0,1);
-				let c=Math.rotate(Math.dif2(relPos.coords,ray.coords),-angle,0,1);
-				let dist=Math.sqrt(Math.pow(ray.size,2)-Math.pow(c[1],2));
-				let minDist=c[1]-ray.size;
-				if(minDist>0)return Infinity;
-				return dist;
-			},
-			circle:function(ray,relPos){//x+Xt=a y+Yt=b => t =(a-x)/X = (b-x)/X
-				let size=ray.size+relPos.obj.size;
-				if(Math.len2(ray.velocity)==0){
-					return Math.Math.len2(ray.coords,relPos.coords)-size;
-				}
-				let angle=Math.getAngle(ray.velocity,0,1);
-				let c=Math.rotate(Math.dif2(relPos.coords,ray.coords),-angle,0,1);
-				let dist=Math.sqrt(Math.pow(size,2)-Math.pow(c[1],2));
-				let minDist=c[1]-size;
-				if(minDist>0)return Infinity;
-				return dist;
-			},
-			square:function(ray,relPos){//x+Xt=a y+Yt=b => t =(a-x)/X = (b-x)/X
-				let size=ray.size+relPos.obj.size;
-				if(Math.len2(ray.velocity)==0){
-					return Math.Math.len2(ray.coords,relPos.coords)-size;
-				}
-				let angle=Math.getAngle(ray.velocity,0,1);
-				let c=Math.rotate(Math.dif2(relPos.coords,ray.coords),-angle,0,1);
-				let dist=Math.sqrt(Math.pow(size,2)-Math.pow(c[1],2));
-				let minDist=c[1]-size;
-				if(minDist>0)return Infinity;
-				return dist;
-			},
-		},
-	},
-	Collider:class{
-		DE(ray){
-
-		}
+class Sprite{
+	constructor(oldObj){
+		this.add=this.constructor.addSprite(this);
 	}
-};
-Sprite={
-	addSprite:function(obj={}){
-		CloneTo(addDrawUpdates.call({
+	static constructorShell(){
+		let newObj=new Sprite.addSprite({
 			coords:[0,0],
 			velocity:[0,0],
-			type:{Sprite_v1:true},
-			scripts:{
+			mass:10,
+			size:10,
+			deleteList:[//part of object.delete();
+				()=>{
 
+				}
+			],
+			//...other properties
+		});
+		newObj.scripts={
+			script1:new mainGame.Script(layers=>layers.update.list[5],function*(){
+				while(true){
+
+					yield;
+				}
+			}.bind(newObj)),
+			//...other scripts
+		};
+		newObj.Draw.scripts=[
+			[()=>{
+				
+			},draw=>draw.list[4]],
+			//...other Drawing scripts
+		];
+	}
+	static constructorExample(){
+		let newObj=new Sprite.addSprite({
+			coords:[0,0],
+			velocity:[0,0],
+			mass:10,
+			size:10,
+			//...other custom properties/variables
+		});
+		newObj.scripts={
+			update5:new mainGame.Script(layers=>layers.update.list[5],function*(){
+				let moveTo=[0,0];
+				while(true){
+					let startTime=mainGame.time.start;
+					let c1=this.coords;
+					let c2=Math.addVec2(this.coords);
+					do{
+						//this.goto(Math.lerp2())
+						yield;
+					}while(1>=mainGame.time.start-startTime)
+					yield;
+				}
+			}.bind(newObj)()),
+			script7:new mainGame.Script(layers=>layers.physics.list[7],function*(){
+				
+			}.bind(newObj)()),
+			//...other scripts
+		};
+		newObj.Draw.scripts=[
+			[()=>{
+				Draw.circle(0,0,10,"grey");
+			},draw=>draw.list[4]],
+			//...other Drawing scripts
+		];
+	}
+	static addSprite(obj={}){
+		obj;
+		let construct={
+			coords:[0,0],
+			velocity:[0,0],
+			mass:10,
+			size:10,
+			scripts:{},
+			Draw:{scripts:[[()=>Draw.circle(0,0,obj.size,"grey"),d=>d.list[5]]],},
+			cloneList:[],//list of constructor(clone) functions
+			deleteList:[],//list of de-refference funcions
+			...obj,
+		}
+		Space.addEntity.call(
+		Space.addDrawUpdates.call(
+		Object.defineProperties(obj,Object.getOwnPropertyDescriptors({
+			...construct,
+			scripts:{
+				detachScripts(){
+					for(let i in this){
+						if(typeof this[i]=="object"){
+							if(this[i].detach)this[i].detach();
+							else if(this[i].return)this[i].return();
+						}
+					}
+				},
+				...construct.scripts,
 			},
-			entRefs:{
-				main:new Space.RefEntity(obj),
+			deleteList:[
+				function(){
+					this.scripts.detachScripts();
+					this.camera.detachScripts();
+					this.refEntity.detachLayer();
+				}.bind(obj),
+				...construct.deleteList,
+			],
+			clone(){},
+			delete(){
+				for(let i=0;i<this.detachList.length;i++){
+					this.detachList[i]();
+				}
 			},
-			get layer(){return this.entRefs.main.layer},
+			type:{shape:"circle",...construct.type},
+			goto(coords){this.refEntity.coords=coords;},
+			*viewSearch(){
+				yield*this.camera.cameraObj.viewSearchV1_1();
+			},
+			get layer(){return this.refEntity.layer},
 			set layer(layerNew){
-				baceEntity.entRefs.main.detach();
-				baceEntity.entRefs.main.attach(layerNew);
+				this.refEntity.detach();
+				this.refEntity.attach(layerNew);
 			},
-			goto:Sprite.add.movement.GoTo(function(oldLayer,layer){
-				//this.entRef.main.detach(oldLayer);
-				//this.entRef.main.attach(layer);
-				this.layer=layer;
-			}),
 			camera:Collider.call({
 				entity:obj,
 				get coords(){return this.entity.coords;},
 				get velocity(){return this.entity.velocity;},
 				get layer(){return this.entity.layer;},
 			}).addCamera(),
-			...obj,
-		}),obj);
+		})),construct.Draw.scripts));
+		obj.type.Sprite_v1=true;
+		if(!obj.layer)obj.layer=world.chunk1;
 		return obj;
-	},
-	add:{
+	}
+	static add={
 		movement:{
 			GoTo:function(newReattach){
 				let movement={};
-				const moveBail=100;
+				const moveBail=200;
 				const tollerance=Math.pow(2,-20*0);
 				let oldLayer,hitWall,objsInView,lastPortal,minObj,minDist,coordsPointer;
 				let goTo,coords,layer,self;
 				let reattach=function(oldLayer,layer){
-					this.entRef.main.detach(oldLayer);
-					this.entRef.main.attach(layer);
+					//this.entRef.main.detach(oldLayer);
+					//this.entRef.main.attach(layer);
 					this.layer=layer;
 				};
 				if(newReattach!=undefined){
 					reattach=newReattach;
 				}
-				let GoTo=function(newCoords){//walls and portal
+				const GoTo=function(newCoords){//walls and portal
 					self=this;
 					goTo=newCoords;
 					coords=this.coords;
@@ -566,19 +696,19 @@ Sprite={
 							onMove1_2_others();
 							if(oldLayer!=layer){
 								reattach.call(this,oldLayer,layer);
-								if(layer.portals==undefined){console.log(this,layer instanceof Space.Chunk);alert()}//TESTING
 								onMove1_1_searchView();
 							}
 							if(Math.len2(coords,goTo)==0)break;
 						}
-						if(i>4){console.error("movement error",i);alert("ERROR: movement error"+i)}
+						if(i>=moveBail){console.error("movement error",i);alert("ERROR: movement error"+i)}
+
 				};
 				const onMove1_1_searchView=function(){
 					oldLayer=layer;
 					//find Objs In view (walls/portals)
 					objsInView=[];
 					let list;
-					try{//TESTING
+					try{
 						list=layer.portals.list;
 					}
 					catch(e){
@@ -683,9 +813,17 @@ Sprite={
 				return GoTo;
 			},
 		},
-	},
-};
+		properties:{
 
+		}
+	}
+};
+Space.RefEntity.prototype.goto=Sprite.add.movement.GoTo(function(oldLayer,newLayer){
+	if(!isNaN(this.id)){
+		this.detach(oldLayer);
+		this.attach(newLayer);
+	}
+});
 function Detachable(restart=false){//Deletable.call(sprite)
 	if(restart||!("detachScripts"in this))this.detachScripts=function(){//detachScripts
 		let list=this.updateScriptList;
@@ -789,7 +927,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			this.cameraObj=new Space.Camera();
 			if(false){
 				this.areaDetectorScript = new mainGame.UpdateScriptV1_0(this,layers.detectors.list[3],undefined,()=>{
-					this.objsInHitbox=this.cameraObj.viewSearch(this.layer,this.detectorFilter)
+					this.objsInHitbox=this.cameraObj.viewSearchV1_1(this.layer,this.detectorFilter)
 					for(let i=0;i<this.objsInHitbox.length;i++){
 						let obj=this.objsInHitbox[i];
 						if(obj.obj==this){
@@ -819,7 +957,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					ctx.rect(...this.sprite.view_rect);
 					ctx.clip();
 					ctx.translate(this.sprite.view_rect[0]+this.sprite.view_rect[2]/2,this.sprite.view_rect[1]+this.sprite.view_rect[3]/2)//ctx.translate(Draw.width/2,Draw.height/2);
-					Draw.transform(Space.Pos.add(sprite.matrixPos,sprite.cameraObj.pos));
+					Draw.undoTransform(sprite.cameraObj.pos.add(sprite.matrixPos));
 					ctx.translate(-sprite.coords[0],-sprite.coords[1]);
 					sprite.viewLayer.onUpdate();
 					ctx.restore();
@@ -828,14 +966,14 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 			else{
 				this.draw_view = new mainGame.UpdateScriptV1_0(this,layers.draw.list[4],undefined,function(){
 					if(!this.sprite.active)return;
-					Draw.undoTransform(this.sprite.matrixPos);
+					Draw.undoTransform(sprite.cameraObj.pos.add(sprite.matrixPos));
 					this.sprite.viewLayer.onUpdate();
 					Draw.transform(this.sprite.matrixPos);
 				},true);
 			}
 			
 			this.getSpaceLayers=function(){
-				let objs=this.cameraObj.viewSearch(this.layer.list,this.viewFilter);
+				let objs=this.cameraObj.viewSearchV1_1(this.layer.list,this.viewFilter);
 				this.cameraObj.viewList=objs;
 				return objs;
 			}
@@ -852,34 +990,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					if(obj.type==undefined)return true;
 					if(obj.type.portal!=undefined){
 						let dist,c,c1,dif;
-						//basic1 isn't used
-						if(obj.type.portal.basic1==true){//let difference in matrix's=0;
-							//searchSpaceLayer
-							let dist,c,c1,dif;
-							switch(obj.type.shape){
-								case "line":
-									c=obj.vec_set(this.coords,obj.pos);
-									//c=dif.vec;
-									c[1]=c[1]/obj.width;//all but coords[0]
-									dist=Math.len2(c)-this.size-obj.size;
-								break;
-								case "circle":
-									c=Math.len2(relPos.coords,this.coords);
-									dist=c-this.size-obj.size;
-								break;
-								case "wall"://vector wall
-									c=Math.rotate(Math.dif2(this.coords,relPos.coords),-Math.getAngle(relPos.velocity,0,1),0,1);
-									c[0]=c[0]>0?Math.max(0,c[0]-Math.len2(relPos.velocity)):c[0];
-									dist=Math.len2(c);
-								break;
-								default:
-									c=Math.len2(relPos.coords,this.coords);
-									dist=c-this.size;
-							}
-							if(dist<=0)return true;
-							else return false;
-						}
-						else if(obj.type.portal.camera_v1){///to do: make more effisient!!
+						if(obj.type.portal.camera_v1){///to do: make more effisient!!
 							//check in range
 							let obj=relPos.obj.parent();
 							let vecA=relPos.vec(obj.vec1,relPos.pos);
@@ -888,7 +999,17 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 							c[0]=c[0]>0?Math.max(0,c[0]-Math.len2(obj.vec2)):c[0];
 							dist=Math.len2(c)-this.size;
 							if(dist>0)return false;
-							//if(Math.len2(vecA)>=Math.len2(vecB))return false;
+							if(Math.len2(relPos.pos.vec)!=0){
+								let posA=relPos.obj.getCamPos();
+								if(
+									(
+										Math.ceil(Math.getAngle(posA.vec,0,1)/Math.PI/2*4)+8-
+										Math.ceil(Math.getAngle(relPos.pos.vec,0,1)/Math.PI/2*4)
+										+1
+									)%4<1
+								)return false;
+							}
+							//if(Math.len2(vecA)>=Math.len2(vecB))return false;//if movingCloser->false
 							//check view angles -> prevent repeating portals
 							if(c[1]!=0)if((c[1]>0)!=obj.side)return false;
 							return true;
@@ -948,27 +1069,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 				this.viewFilter1=function(relPos){
 					const obj=relPos.obj;
 					const originObj=this;
-					if(obj.type.portal!=undefined)
-					if(obj.type.portal.basic1==true){//let difference in matrix's=0;
-						//searchSpaceLayer
-						let dist,c,c1,dif;
-						switch(obj.type.shape){
-							case "line":
-								dif=Math.undotransform(originObj.posMatrix,obj.matrixPos);
-								c=dif[dif.length-1];
-								c[1]=c[1]/obj.width;//all but coords[0]
-								dist=Math.len2([
-									Math.max(0,Math.abs(c[0])-originObj.rectSize[0]),
-									Math.max(0,Math.abs(c[1])-originObj.rectSize[1])
-								])-obj.size;
-							break;
-						}
-						if(dist<=0){
-							return true;
-						}
-					}else{
-						return true;
-					}
+					if(obj.type.portal!=undefined)return true;
 					return false;
 				}
 				break;
@@ -979,7 +1080,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 		};
 		this.addPhysics=()=>{
 			this.type.physical=1;
-			this.mass=1;
+			if(!("mass"in this))this.mass=1;
 			this.Physics=Detachable.call({
 				minObj:null,
 				minCTime:NaN,
@@ -990,7 +1091,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 				reflectVel:()=>{
 					//phisics part 2: do collisions + move object
 					if(this.Physics.isColliding){
-						let obj=this.Physics.minObj;
+						let relPos=this.Physics.minObj;let obj=relPos.proxy;
 						switch(obj.type.shape){
 							case"circle":
 								let dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(obj.coords,obj.velocity));
@@ -1052,8 +1153,12 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 								];
 								this.velocity=vel1[0];
 								obj.velocity=vel1[1];
-								if(len<(this.size+obj.size)&&this.type.movable!==false)this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
-								if(len<(this.size+obj.size)&&obj.type.movable!==false)obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
+								if(len>0&&len<(this.size+obj.size)){
+									if(this.type.movable!==false)
+										this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
+									if(obj.type.movable!==false)
+										obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
+								}
 							break;
 						}
 					}else{
@@ -1066,27 +1171,32 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					let minCTime=Infinity;//min Collission time how many frames until collision
 					let minObj=null;
 					//phisics layer 1: get/handle collisions
-					for(let i=0;i<this.layer.list.length;i++){
-						let obj=this.layer.list[i];
+					//for(let i=0;i<this.layer.list.length;i++){
+					for(let relPos of this.layer.viewSearch(this.size*1)){
+						let obj=relPos.obj;//this.layer.list[i];
 						if(obj==this)continue;
-						if(obj.type!=undefined)if(obj.type.shape!=undefined)if(obj.type.physical!=undefined){
-							let normal,obj_dist,obj_time,normal2, dif,len;
+						if(obj.type!=undefined)if(obj.type.shape!=undefined&&obj.type.physical!=undefined){
+							let normal,obj_dist,obj_time,normal2, dif,len,sizeSum;
 							switch(obj.type.shape){
 								case "circle":
-									dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),obj.coords);//obj.velocity));
-									len=Math.len2(dif)-(this.size+obj.size);
+									sizeSum=(this.size+obj.size);
+									dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),relPos.coords);//relPos.velocity));
+									len=Math.len2(dif)-sizeSum;
 									if(len<0){
-										normal=Math.minusVec2(this.coords,obj.coords);
-										obj_dist=Math.len2(normal)-(this.size+obj.size);
-										if(obj_dist<len){//collide
-											obj_dist=(obj_dist-len);
-										}
-										else{
-											obj_dist=len;
-										}
-										if(obj_dist<minCTime&&obj_dist<0){
-											minCTime=obj_dist;
-											minObj=obj;
+										normal=Math.minusVec2(this.coords,relPos.coords);
+										obj_dist=Math.len2(normal);
+										if(obj_dist!=0){
+											obj_dist-=sizeSum;
+											if(obj_dist<len){//collide
+												obj_dist=(obj_dist-len);
+											}
+											else{
+												obj_dist=len;
+											}
+											if(obj_dist<minCTime&&obj_dist<0){
+												minCTime=obj_dist;
+												minObj=relPos;
+											}
 										}
 									}
 								break;
@@ -1102,7 +1212,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 				move:()=>{
 					this.coords=Math.addVec2(this.coords,Math.scaleVec2(this.velocity,this.Physics.minCTime));
 				},
-				update1:new mainGame.UpdateScriptV1_0(this,layers.physics.list[2],undefined,()=>{
+				update1:new mainGame.UpdateScriptV1_0(this,layers.physics.list[6],undefined,()=>{
 					this.Physics.findMinObj();
 					this.Physics.move();
 					this.Physics.reflectVel();
@@ -1136,7 +1246,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 		//this.addTraverseable();
 	})();
 	return this;
-}
+}//old collider
 GUI={
 	Meterbar:class{//8:15 to 8:50 : 35 mins
 		constructor(){

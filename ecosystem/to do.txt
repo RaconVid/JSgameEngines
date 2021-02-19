@@ -1,24 +1,12 @@
 to do:
-
-collider.attachSpace();
-
+Math.js: Vector/Matrix classes
+gameBits.js:{
+	~line224: fix Proxy class with RelPos
+}
 eco.js - resetting system:{
 	save,load,
 }
-add portals:{
-	cave portals
-}
+move,delete,spawnNew,save,unload,load
 
-portal bugs:[
-	(if world < 2x2 chunks) then Cameras wont see portals in [0,y] and [x,0] ,
-];
-
-
-arrays:{
-	ordered:
-	id:
-
-}
-phase:{
-	add
-}
+Camera class;
+add portals:cave portals
