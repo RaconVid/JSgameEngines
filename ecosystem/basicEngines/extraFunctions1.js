@@ -93,7 +93,7 @@ multiInherit=function(...protos) {
   }));
 }
 //unfinished
-class Refference{
+class Reference{
 	constructor(obj){
 		this.ref=obj;
 	}

@@ -1,12 +1,10 @@
 to do:
 Math.js: Vector/Matrix classes
 gameBits.js:{
-	~line224: fix Proxy class with RelPos
+	
 }
 eco.js - resetting system:{
 	save,load,
 }
-move,delete,spawnNew,save,unload,load
-
 Camera class;
 add portals:cave portals

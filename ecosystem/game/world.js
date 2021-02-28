@@ -1,8 +1,8 @@
-const showChunksDebug_UI=false;//DEBUG_UI
+const showChunksDebug_UI=true;//DEBUG_UI
 class World{
 	constructor(){
-		this.chunkSize=100;//diamiter
-		let mapScale=10;
+		this.chunkSize=400;//diamiter
+		let mapScale=20;
 		let mapSize=[mapScale,mapScale];
 		let mapChunks=[];
 		this.chunk1=new Space.Chunk();
@@ -230,45 +230,52 @@ class World{
 		chunks=[];//note: chunks[i]=relPos:{chunk,vec,mat}; (for basic_v1 portals)
 		distLevels=[];
 		mainChunk=null;
-		*viewSearch(radius){//how far to search
+		*viewSearch(radius,coords){//how far to search
 			let distanceLevel=Math.ceil(radius/this.mainChunk.size);
 			let distLevel=this.distLevels[distanceLevel];
 			let maxChunks;
 			if(distLevel==undefined)maxChunks=this.chunks.length;
 			else maxChunks=distLevel;
-			let relChunk;
-			let relPos1=new Space.RelPos();
-			yield* this.mainChunk.list;
+			let relChunk={},list;
+			let relPos1=new Space.RelPos(this.mainChunk);
+			let yielded=yield relPos1;
+			if(yielded==undefined||yielded)yield* this.mainChunk.list;
 			for(let l=1;l<maxChunks;l++){
 				relChunk=this.chunks[l];
-				for(let i=0;i<relChunk.layer.list.length;i++){
-					const relPos=relChunk.layer.list[i];
-					relPos1.obj=relPos.obj;
-					relPos1.pos.vec=Math.addVec2(relChunk.vec,relPos.pos.vec);
-					relPos1.pos.mat=relPos.pos.mat;
-					relPos1.pos.layer=relChunk.layer;
-					yield relPos1;
-					if(relPos.obj.type.chunk)yield*this[itemSearch](radius,relPos1);
+				list=relChunk.layer.list;
+				for(let i=0;i<list.length;i++){
+					const relPos=list[i];
+					relPos1=new Space.RelPos(relPos,relChunk);
+					yielded=yield relPos1;
+					if(yielded==undefined||yielded){
+						if(relPos.obj.type.chunk)yield*this[itemSearch](radius,relPos1);
+					}
 				}
 			}
 		};
-		*[itemSearch](radius,relPos,objList=[]){return
+		*[itemSearch](radius,relPos,objList=[]){
+			let relPos1=new Space.RelPos();
+			let pos=new Space.Pos(relPos.pos);
+			let yielded;
+			pos.vec=Clone(relPos.coords);
 			for(let i of relPos.obj.list){
-				let relPos1=new Space.RelPos(i,relPos.pos);
 				if(objList.includes(i))continue;
 				objList.push(i);
-				yield relPos1;
-				yield*this[itemSearch](radius,relPos,objList);
+				relPos1=new Space.RelPos(i,pos);
+				yielded=yield relPos1;
+				if(yielded==undefined||yielded){
+					if(relPos1.obj.type.chunk)yield*this[itemSearch](radius,relPos1,objList);
+				}
 				objList.pop();
 			}
 		}
 		//typeof RelChunk=class
 		RelChunk({layer,vec}){this.layer=layer;this.vec=vec;return this;};
 		getChunk(n,side,vec){
-			return {
+			return new Space.Pos({
 				layer:this.chunks[n].layer.sides[side].chunk,
 				vec:Math.addVec2(this.chunks[n].vec,Math.scaleVec2(vec,this.chunks[n].layer.size)),
-			};
+			});
 		};
 		getView(refEntity){
 			/*+ve y = up; #=0;

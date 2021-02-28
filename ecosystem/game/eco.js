@@ -67,7 +67,12 @@
 				}
 				ctx.fillRect(100+14*fpsDIV,60,10*(fps%modulo)/modulo,10);
 			}
-			if(1)ctx.fillText("view:"+world.player2.camera.cameraObj.viewList.length,100,140)
+			if(1)ctx.fillText("view:"+world.player2.camera.cameraObj.viewList.length,100,140);
+			ctx.font="15px Arial";
+			if(1){
+				ctx.fillText("P1 chunk:"+world.player1.entity.layer.coords,100,240);
+				ctx.fillText("P2 chunk:"+world.player2.entity.layer.coords,100,255);
+			}
 		})
 	}
 	let L=mainGame.layers;
@@ -149,27 +154,29 @@
 				get camera_canvasCoords(){return[this.camera_canvasRect[0]+this.camera_canvasRect[2]/2,this.camera_canvasRect[1]+this.camera_canvasRect[3]/2];}
 			//}
 			//scripts={
-				scriptList=[];
-				*script_onStart(){
-					this.getInputs();
-					this.actions.mouseDT=[0,0];
-				}
-				script_getInput(){
-					this.getInputs();
-				}
-				*script_update1(){
-					const lastLayer=Symbol("lastLayer");
-					this.entity[lastLayer]=NaN;
-					while(true){
-						if(this.entity[lastLayer]!=this.entity.layer){
-							this.getView();
-						}
-						this.entity[lastLayer]=this.entity.layer;
-						this.subScript_movement1();
-						this.subScript_arm();
-						yield;
+				//updateScripts
+					scriptList=[];
+					*script_onStart(){
+						this.getInputs();
+						this.actions.mouseDT=[0,0];
 					}
-				};//subscripts:{
+					script_getInput(){
+						this.getInputs();
+					}
+					*script_update1(){
+						const lastLayer=Symbol("lastLayer");
+						this.entity[lastLayer]=NaN;
+						while(true){
+							if(this.entity[lastLayer]!=this.entity.layer){
+								this.getView();
+							}
+							this.entity[lastLayer]=this.entity.layer;
+							this.subScript_movement1();
+							this.subScript_arm();
+							yield;
+						}
+					};
+				//subscripts:{
 					subScript_movement1(){
 						let moveVec=[0,0];
 						if(this.actions.down-this.actions.up!=0)
@@ -177,10 +184,10 @@
 						if(this.actions.right-this.actions.left!=0)
 							moveVec[0]+=this.actions.right-this.actions.left;
 						this.movementVec1=Math.lerpT2(this.movementVec1,moveVec,0.999,mainGame.time.delta);
-						moveVec=Math.scaleVec2(this.movementVec1,this.movement_speed*mainGame.time.delta);
+						moveVec=Math.scaleVec2(this.movementVec1,this.movement_speed);
 						this.entity.velocity=Math.lerpT2(this.entity.velocity,moveVec,0.999,mainGame.time.delta);
-						moveVec=this.entity.velocity;//Math.addVec2(moveVec,this.entity.velocity);
-						if(Math.hypot(...this.entity.velocity)<0.01*mainGame.time.delta){
+						moveVec=Math.scaleVec2(this.entity.velocity,mainGame.time.delta);//Math.addVec2(moveVec,this.entity.velocity);
+						if(Math.hypot(...this.entity.velocity)<0.01){
 							this.entity.velocity=[0,0];
 						}
 						this.moveBy(moveVec);
@@ -189,74 +196,122 @@
 					moveVelocity(){
 
 					}
+					subScript_arm_holdingScript=this.Script_subScript_arm_holding();
+					*Script_subScript_arm_holding(){
+						const thisEntity=this.armObj;//arm Object
+						let mouseEntity=new Space.RefEntity({coords:[0,0]},this.entity.layer);
+						mouseEntity.detach();
+						mouseEntity.attach=()=>{};
+						let mouse;
+						const updateMouse=()=>{
+							mouse=Math.addVec2(this.entity.coords,this.actions.mousePos);
+							mouseEntity.pos=new Space.Pos(this.entity.pos);
+							mouseEntity.obj.coords=Math.vec2(Clone(this.entity.coords));
+
+							mouseEntity.coords=mouse;
+						};
+						updateMouse();
+						while(true){
+							updateMouse();
+							if(Inputs.mouse.down){
+								thisEntity.isGrabbing=true;
+								let minObj=null;let minDist=Infinity;
+								for(let i=0;i<10 +60*10;i++){
+									for(let relPos of mouseEntity.pos.layer.viewSearch(thisEntity.maxDist*4)){
+										let obj=relPos.obj;
+										if(obj==this.entity)continue;
+										if(!this.armObj.detectCarryable(obj))continue;
+										let dist=Math.len2(thisEntity.coords,relPos.coords);
+										if(dist<thisEntity.maxDist+(obj.size+thisEntity.size)&&dist>0&&dist<minDist){
+											minObj=relPos;
+											minDist=dist;
+										}
+									}
+									if(minObj!=null)break;
+									if(!Inputs.mouse.down)break;
+									else yield;
+									updateMouse();
+								}
+								if(minObj!=null){//hold physics
+									thisEntity.holding=minObj;
+									let relPos=minObj;
+									let obj=relPos.obj;
+									while(thisEntity.isGrabbing){
+										updateMouse();
+										let found=false;
+										for(let relPos1 of mouseEntity.pos.layer.viewSearch(100)){
+											if(relPos1.obj==relPos.obj){
+												found=true;
+												relPos=relPos1;
+												break;
+											}
+										}
+										if(!found)break;
+										const cooling=0.9;
+										//Math.hypot(Math.addVec2(Math.dif2(this.armObj.coords,relPos.coords),Math.scaleVec2(Math.dif2(this.armObj.coords,relPos.coords),cooling)));
+										let part=thisEntity;
+										let body=this.entity;
+										let dif=Math.vec2(Math.dif2(part.coords,relPos.coords))
+										dif=dif.add(Math.scaleVec2(Math.dif2(body.velocity,relPos.velocity),mainGame.time.delta));
+										const force=1/(obj.mass+body.mass);//);//0.3
+										let difA=Math.scaleVec2(dif,+(force*body.mass));
+										let difB=Math.scaleVec2(dif,-(force*obj.mass));
+										let forceScale=20*Math.min(1,mainGame.time.delta*10)**2;
+										relPos.velocity=Math.addVec2(relPos.velocity,Math.scaleVec2(difA,forceScale));
+										body.velocity=Math.addVec2(body.velocity,Math.scaleVec2(difB,forceScale));
+										forceScale=0.9*Math.min(1,mainGame.time.delta*10);
+										relPos.coords=Math.addVec2(relPos.coords,Math.scaleVec2(difA,forceScale));
+										this.moveBy(Math.scaleVec2(difB,forceScale));
+										thisEntity.isGrabbing=Inputs.mouse.down;
+										yield;
+									}
+									thisEntity.holding=null;
+								}
+								else{ do{thisEntity.isGrabbing=Inputs.mouse.down;yield;}while(thisEntity.isGrabbing)
+								}
+								thisEntity.isGrabbing=false;
+							}
+							yield;
+						}
+					}
 					subScript_arm(){
-						let thisEntity=this.armObj;//arm Object
+						const thisEntity=this.armObj;//arm Object
 						let mouse=Math.addVec2(this.entity.coords,this.actions.mousePos);
 						thisEntity.coords=mouse;
-						if(Inputs.mouse.down){
-							let viewer=this.viewSearch();
+						this.subScript_arm_holdingScript.next();
+						/*if(thisEntity.isGrabbing&&!thisEntity.holding){
+							let viewer=this.viewSearch(300);
 							for(let relPos of viewer){
 								let obj=relPos.obj;
 								if(obj==this.entity)continue;
 								let dist=Math.len2(thisEntity.coords,relPos.coords);
-								if(dist<100&&dist>0){
+								if(dist<40&&dist>0){
 									const cooling=0.9;
 									//Math.hypot(Math.addVec2(Math.dif2(this.armObj.coords,relPos.coords),Math.scaleVec2(Math.dif2(this.armObj.coords,relPos.coords),cooling)));
 									if(this.armObj.detectCarryable(obj)){
-										if(TESTING){
-											let part=thisEntity;
-											let body=this.entity;
-											let dif=Math.vec2(Math.dif2(part.coords,relPos.coords))
-											dif=dif.sub(Math.scaleVec2(Math.addVec2(body.velocity,relPos.velocity),mainGame.time.delta));
-											
-											const force=0.3*0 +0.9;
-											let difA=Math.addVec2(Math.scaleVec2(dif, 0.6*0 +1),body.velocity);
-											let difB=Math.addVec2(Math.scaleVec2(dif,-0.6*0 -1),relPos.velocity);
-											relPos.velocity=Math.lerp2(relPos.velocity,difA,force/obj.mass,mainGame.time.delta);
-											body.velocity=Math.lerp2(body.velocity,difB,force/body.mass,mainGame.time.delta);
-										}
-										else{
-											let force=(this.entity.mass+relPos.obj.mass)*4/(dist);
-											let s=Math.clamp(0,1,100*mainGame.time.delta);
-											let f=Math.clamp(0,1,this.armObj.forceTransfer*force/relPos.obj.mass*mainGame.time.delta);
-											let newV=Math.lerp2(
-												relPos.velocity,
-												Math.addVec2(
-													this.armObj.velocity,
-													Math.scaleVec2(
-														Math.dif2(thisEntity.coords,relPos.coords),
-														s
-													),
-												),
-												f
-											);
-											let dif=Math.dif2(relPos.coords,thisEntity.coords);
-											/*relPos.coords=Math.lerp2(
-												relPos.coords,
-												thisEntity.coords,
-												Math.clamp(0,1,mainGame.time.delta*f)
-											);*/
-											f=Math.clamp(0,1,(1-this.armObj.forceTransfer)*force/this.entity.mass*mainGame.time.delta);
-											//this.moveBy(Math.scaleVec2(dif,Math.clamp(0,1,mainGame.time.delta*f)));
-											this.entity.velocity=Math.lerp2(
-												this.entity.velocity,
-												Math.addVec2(
-													relPos.velocity,
-													Math.scaleVec2(
-														Math.dif2(relPos.coords,thisEntity.coords),
-														s
-													),
-												),
-												Math.clamp(0,1,f)
-											);
-
-											relPos.velocity=newV;
-										}
-										//break;
+										let part=thisEntity;
+										let body=this.entity;
+										let dif=Math.vec2(Math.dif2(part.coords,relPos.coords))
+										dif=dif.add(Math.scaleVec2(Math.dif2(body.velocity,relPos.velocity),mainGame.time.delta));
+										const force=1/(obj.mass+body.mass);//);//0.3
+										let difA=Math.scaleVec2(dif,+(force*body.mass));
+										let difB=Math.scaleVec2(dif,-(force*obj.mass));
+										let forceScale=2*Math.min(1,mainGame.time.delta*20)**2;
+										relPos.velocity=Math.addVec2(relPos.velocity,Math.scaleVec2(difA,forceScale));
+										body.velocity=Math.addVec2(body.velocity,Math.scaleVec2(difB,forceScale));
+										forceScale=0.9*Math.min(1,mainGame.time.delta*10);
+										relPos.coords=Math.addVec2(relPos.coords,Math.scaleVec2(difA,forceScale));
+										this.moveBy(Math.scaleVec2(difB,forceScale));
 									}
 								}
 							}
+							if(!Inputs.mouse.down){
+								thisEntity.isGrabbing=false;
+							}
 						}
+						if(Inputs.mouse.down){
+							thisEntity.isGrabbing=true;
+						}*/
 					}
 				//},
 			//};
@@ -320,95 +375,21 @@
 					this.actions.mousePos=mouse;
 				};
 			//};
-			//view=class{
-				chunks=[];//note: chunks[i]=relPos:{chunk,vec,mat}; (for basic_v1 portals)
-				chunks_layers=[];//list of layers for arry.indexof();
-				viewRange=[200,200];
-				*viewSearch(){
-					const self=this;
-					const goto=self.generalMoveTo;
-					for(let l=0;l<this.chunks.length;l++){
-						let relChunk=this.chunks[l];
-						for(let i=0;i<relChunk.layer.list.length;i++){
-							let relPos=relChunk.layer.list[i];//new Space.RelPos();
-							yield {
-								get vec(){return Math.addVec2(relPos.pos.vec,relChunk.vec)},
-								mat:relPos.pos.mat,//Math.addMat2x2(relPos.pos.mat,relChunk.mat),
-								get coords(){return Math.addVec2(this.obj.coords,this.vec)},
-								set coords(val){relPos.coords=Math.minusVec2(val,this.vec);},//goto.call(this.obj,Math.minusVec2(val,this.vec));},
-								get velocity(){return this.obj.velocity},
-								set velocity(val){this.obj.velocity=val;},
-								obj:relPos.obj,
-							};
-						}
-					}
-				};
-				*viewSearch(){
-					yield* this.entity.layer.viewSearch();
+			//view={
+				*viewSearch(r){
+					yield* this.entity.layer.viewSearch(r);
 				}
-				//relChunk == class
-				relChunk({layer,vec}){this.layer=layer;this.vec=vec;};
-				getView(){
-					const getChunk=(n,side,vec)=>{
-						return {
-							layer:this.chunks[n].layer.sides[side].chunk,
-							vec:Math.addVec2(this.chunks[n].vec,Math.scaleVec2(vec,this.chunks[n].layer.size)),
-						};
-					}
-					this.chunks=[{layer:this.entity.layer,vec:[0,0]}];
-					const getDist =function*(){
-						/*
-							846
-							102
-							537
-						*/
-						//dist1
-							this.chunks.push(//dist1
-								getChunk(0,"00",[-1,0]),
-								getChunk(0,"01",[1,0]),
-								getChunk(0,"10",[0,-1]),
-								getChunk(0,"11",[0,1]),
-							);
-							//yield;
-							this.chunks.push(//dist1_corners
-								getChunk(1,"10",[0,-1]),
-								getChunk(2,"11",[0,1]),
-								getChunk(3,"01",[1,0]),
-								getChunk(4,"00",[-1,0]),
-							);
-						yield;
-							//UNFINNISHED
-							this.chunks.push(//dist1
-								getChunk(0,"00",[-1,0]),
-								getChunk(0,"01",[1,0]),
-								getChunk(0,"10",[0,-1]),
-								getChunk(0,"11",[0,1]),
-							);
-							//yield;
-							this.chunks.push(//dist1_corners
-								getChunk(1,"10",[0,-1]),
-								getChunk(2,"11",[0,1]),
-								getChunk(3,"01",[1,0]),
-								getChunk(4,"00",[1,0]),
-							);
-						yield;
-					}.bind(this);
-					let itter=getDist();
-					for(let i=0;i<1;i++){
-						itter.next();
-					}
-				};
+				getView(){};
 			//};
 			entity=Object.create(Space.RefEntity.prototype,Object.getOwnPropertyDescriptors({
 				mass:30,size:10,
 				keywords:{player:true,},
 				type:{player:true,shape:"circle"},
-				layer:null,//chunk
-				coords:[100,100],
+				coords:[10,10],
 				velocity:[0,0],
 				Draw:{
-					costume:(relPos,drawLayer,script)=>{
-						return new mainGame.UpdateScript(v=>drawLayer.list[4],()=>{
+					costume:(relPos,drawLayer,script,layerNumber=4)=>{
+						return new mainGame.UpdateScript(v=>drawLayer.list[layerNumber],()=>{
 							ctx.save();
 							Draw.transform(relPos.pos);
 							ctx.translate(...this.entity.coords);
@@ -418,22 +399,76 @@
 					},
 					attachDraw:(relPos,drawLayer)=>{
 						let costume=this.entity.Draw.costume.bind(this,relPos,drawLayer);
+						let costume1=this.entity.Draw.costume;
 						costume(()=>{
-							Draw.square(0,0,10,"green");
-						});
+							ctx.save();
+							ctx.translate(...this.armObj.vec);
+							if(this.armObj.isGrabbing){
+								Draw.line(-10,0,10,0,3,Draw.hslColour(0.5,0.5,0.5+0.3*Math.sin(mainGame.time.start*3)));
+								Draw.line(0,-10,0,10,3,Draw.hslColour(0.5,0.5,0.5+0.3*Math.sin(mainGame.time.start*3)));
+							}else{Draw.circle(0,0,5,"#FF4040BB");}
+							ctx.restore();
+						},7);
 						costume(()=>{
-							Draw.circle(...this.armObj.vec,4,"red");
-						});
+							ctx.beginPath();
+							ctx.moveTo(...Math.lerp2([0,0],this.armObj.vec,10/(1+Math.len2(this.armObj.vec))));
+							ctx.lineTo(...this.armObj.vec);
+							if(this.armObj.isGrabbing){
+								ctx.strokeStyle="#50448C";
+								ctx.lineWidth=7;
+							}
+							else{
+								ctx.strokeStyle="#50448C";
+								ctx.lineWidth=4;
+							}
+							ctx.stroke();
+						},5);
+						costume(()=>{
+							ctx.save();
+							ctx.globalAlpha=0.1;
+							//insert image here
+							ctx.drawImage(Images.icon,-25,-32);
+							ctx.restore();
+						},6);
+						costume(()=>{
+							let sz=this.entity.size*1;
+							let sz2=0.2;
+							let x=0,y=0;
+							ctx.lineWidth=3;
+							ctx.strokeStyle="purple";
+							
+							ctx.beginPath();
+							ctx.moveTo(x-sz*sz2,y-sz);
+							ctx.lineTo(x+sz,y-sz);
+							ctx.lineTo(x+sz,y+sz*sz2);
+							ctx.quadraticCurveTo(x+sz,y+sz,x+sz*sz2,y+sz);
+							ctx.lineTo(x-sz,y+sz);
+							ctx.lineTo(x-sz,y-sz*sz2);
+							ctx.quadraticCurveTo(x-sz,y-sz,x-sz*sz2,y-sz);
+							ctx.stroke();
+							ctx.closePath();
+							ctx.beginPath();
+							ctx.lineWidth=3;
+							let col="#CC0000";
+							ctx.strokeStyle=col;
+							ctx.lineWidth=3;
+							ctx.arc(x,y,sz*0.7,Math.PI/2-Math.PI/4,Math.PI/2+Math.PI/4);
+							ctx.stroke();
+							Draw.circle(x-sz/2,y-sz*0.35,sz*0.2,col);
+							Draw.circle(x+sz/2,y-sz*0.35,sz*0.2,col);
+						},7);
 						//draw Arm
 					},
 				},
-				pos:{vec:[0,0],mat:[[1,0],[0,1]]},
+				pos:{vec:[0,0],mat:[[1,0],[0,1]],layer:null},//chunk}
 				id:NaN,
 				obj:null,//obj=entity i.e this.obj=this;
 				proxy:null,
 			}));
 			armObj={
 				parent:null,
+				holding:null,
+				isGrabbing:false,
 				get coords(){return Math.addVec2(this.vec,this.parent.entity.coords);},
 				set coords(newCoords){this.vec=Math.minusVec2(newCoords,this.parent.entity.coords);},
 				get velocity(){return this.parent.entity.velocity;},
@@ -442,6 +477,7 @@
 				mat:[[1,0],[0,1]],
 				//consts
 					mass:5,
+					size:10,
 					forceTransfer:0.5,
 					maxDist:20,
 				//--
@@ -451,6 +487,7 @@
 		};
 		window.player=playerConstructor;
 		let newObj=new playerConstructor();
+		//CloneTo([Draw.width/2*0,0,Draw.width/2,Draw.height],newObj.camera_canvasRect);
 		return newObj;
 	})();
 	world.player2=(()=>{
@@ -465,11 +502,11 @@
 					},
 					onUpdate1:function(layer,i){
 						this.move=[this.isKey("d")-this.isKey("a"),this.isKey("s")-this.isKey("w")];
-						this.move=Math.scaleVec2(this.move,200*mainGame.time.delta);
-						CloneTo(Math.lerpT2(this.velocity,this.move,0.9,mainGame.time.delta),this.velocity);
+						this.move=Math.scaleVec2(this.move,200);
+						CloneTo(Math.lerpT2(this.velocity,this.move,0.99,mainGame.time.delta),this.velocity);
 					},
 					onMovement1:function(layer,i){
-						let gotoPos=Math.addVec2(this.coords,this.velocity);
+						let gotoPos=Math.addVec2(this.coords,Math.scaleVec2(this.velocity,mainGame.time.delta));
 						this.goto(gotoPos);
 					},
 					onDraw1:[function(layer,i){
@@ -560,6 +597,7 @@
 			let baceEntity={
 				//bace_entity:{
 					coords:[0,0],
+					mass:400,
 					velocity:[0,0],
 					type:{chunk:true,shape:"circle"},
 					list:[],
@@ -832,34 +870,74 @@
 			rock1.goto(coords);
 			return newObj;
 		};
+		let collisions=function*(){
+			let n=0;
+			let oldLayer=this.layer;
+			for(let relPos of this.layer.viewSearch(100)){
+				if(!relPos.obj.type)continue;
+				if(relPos.obj.type.shape!="circle")continue;
+				let dif=Math.dif2(relPos.coords,this.coords);
+				let sizeSum=relPos.obj.size+this.size;
+				let dist=Math.hypot(...dif);
+				if(dist<sizeSum&&dist>0){
+					this.goto(Math.addVec2(this.coords,Math.scaleVec2(dif,(relPos.obj.mass/(this.mass+relPos.obj.mass))*(dist-sizeSum)/dist)));
+					relPos.coords=(Math.addVec2(relPos.coords,Math.scaleVec2(dif,-(this.mass/(this.mass+relPos.obj.mass))*(dist-sizeSum)/dist)));
+					//yield;
+				}
+				n++;
+				if(n==20){n=0;yield;}
+				//if(this.layer!=oldLayer)return;
+			}
+		}
+		let friction=1.5;
+		let basicPhysicsScript=function(bindObj){
+			return new mainGame.UpdateScript(l=>l.physics.list[6],function*(){
+				let collisions1=collisions.bind(this);
+				let collisions1Itter=collisions1();
+				while(true){
+					if(collisions1Itter.next().done){
+						collisions1Itter=collisions1();
+					}
+					this.goto(Math.addVec2(this.coords,Math.scaleVec2(this.velocity,mainGame.time.delta)));
+					//this.velocity=Math.scaleVec2(this.velocity,1/friction**mainGame.time.delta);
+					yield;
+				}
+			}.bind(bindObj)());
+		};
 		let makeRock1=function(coords=[0,0].map(v=>Math.random()*100)){
-			let sprite={};
-			CloneTo({
-				scripts:[
-					{}
-				],
-				eventListeners:[
-
-				],
-				vars:{
-
-				},
-				blocks:{
-					goto(){},
-				},
-				entity:{
-					pos:{
-						vec:[0,0],
-						mat:[[1,0],[0,1]],
-						layer:null,
-					},
-				},
-			},sprite)
+			let sprite={
+				mass:20+Math.random()*40,
+			};
+			sprite.scripts={
+				physics:new basicPhysicsScript(sprite),
+				update1:new mainGame.UpdateScript(l=>l.update.list[4],function*(){
+					let ang=Math.random();
+					let mag=Math.random();
+					this.goto(Math.scaleVec2([Math.random()*2-1,Math.random()*2-1],100))
+					while(1){yield;
+						ang+=(Math.random()*2-1)/20;
+						ang%=2;
+						mag=1;//Math.lerp(mag,Math.random(),0.4);
+						let moveBy=Math.vec2(Math.scaleVec2(
+							[Math.sin(ang*Math.PI*2)*mag,mag*Math.cos(ang*Math.PI*2)],
+							140,
+						));
+						this.velocity=Math.lerpT2(this.velocity,moveBy,0.9,mainGame.time.delta);
+					}
+				}.bind(sprite)()),
+			};
+			sprite.Draw={scripts:[
+				[v=>Draw.circle(0,0,sprite.size,"grey"),d=>d.list[6]],
+				[v=>Draw.square(0,0,10,Draw.hslColour((mainGame.time.start/4)%4,0.6,0.4)),d=>d.list[4]]
+			]};
+			Sprite.addSprite(sprite);
+			playerConstructor.addCarryable(sprite);
+			return sprite;
 		};
 		world.creature1=(()=>{//rock?
 			
 			let rocks=[];
-			for(let i=0;i<1;i++){
+			for(let i=0;i<10;i++){
 				rocks.push(makeRock());//[0,0]
 				rocks.push(makeRock1());//[0,0]
 			}
@@ -897,20 +975,5 @@
 		let newObj={};
 		return newObj;
 	})();
-	newThing=()=>new mainGame.UpdateScript(l=>l.update.list[8],function*(){
-		let ang=Math.random();
-		this.goto(Math.scaleVec2([Math.random()*2-1,Math.random()*2-1],100))
-		while(1){yield;
-			ang+=(Math.random()*2-1)/20;
-			ang%=2;
-			let moveBy=Math.vec2(Math.scaleVec2(
-				[Math.sin(ang*Math.PI*2),Math.cos(ang*Math.PI*2)],
-				2,
-			));
-			this.velocity=Math.lerpT2(this.velocity,moveBy,1,mainGame.time.delta);
-			this.goto(Math.addVec2(this.coords,this.velocity));
-		}
-	}.bind(Collider.call(new Sprite()).addPhysics())());
 })();
 mainGame.start();
-for(let i=0;i<100;i++)newThing();

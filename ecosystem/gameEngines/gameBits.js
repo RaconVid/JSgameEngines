@@ -224,13 +224,15 @@
 				];
 			}
 		},*/
-		RelPos:class{
-			this;obj;proxy;
-			constructor(obj,pos=new Space.Pos(),posT1=new Space.Pos()){
-				this.obj=obj;
+		RelPos:class RelPos{
+			constructor(obj,pos=new Space.Pos(),posT1){//posT1=new Space.Pos()
+				//objVal=object one level up (this.objVal is a relPos or an entity)
+				//obj=top level object (this.obj is an entity)
+				this.relObj=obj;
+				this.obj=(obj instanceof this.constructor)?obj.obj:obj;
 				this.pos=pos;
+				this.proxy=this;//new Proxy(this,this);
 				this.this=this;
-				this.proxy=new Proxy(this,this);
 				//return new Proxy(this,this);
 			}//receiver.prop=()=>target.prop;
 			//obj,property,relPos
@@ -244,16 +246,16 @@
 				return true;
 			}
 			get coords(){
-				return this.vec(this.obj.coords,this.pos);
+				return this.vec(this.relObj.coords,this.pos);
 			}
 			get velocity(){
-				return this.vecT1(this.obj.velocity,this.pos);
+				return this.vecT1(this.relObj.velocity,this.pos);
 			}
 			set coords(vec){
-				this.obj.coords = this.vec_set(this.obj.coords,this.pos);
+				this.relObj.coords = this.vec_set(vec,this.pos);
 			}
 			set velocity(vec){
-				this.obj.velocity = this.vecT1_set(this.obj.velocity,this.pos);
+				this.relObj.velocity = this.vecT1_set(vec,this.pos);
 			}
 			vec(vec,pos=this.pos){
 				//return [pos.vec[0]+vec[0],pos.vec[1]+vec[1]];
@@ -464,6 +466,7 @@
 			constructor(list=[],onUpdate){
 				this.onUpdate=onUpdate;
 				this.portals={list:[]};
+				this.type={chunk:true};
 				this.list=list;//[Entity,Entity];layer.list[i].get_coords; or
 			}
 			*[Symbol.iterator](){//unfinished
@@ -648,7 +651,7 @@ class Sprite{
 			type:{shape:"circle",...construct.type},
 			goto(coords){this.refEntity.coords=coords;},
 			*viewSearch(){
-				yield*this.camera.cameraObj.viewSearchV1_1();
+				yield*this.camera.cameraObj.viewList;
 			},
 			get layer(){return this.refEntity.layer},
 			set layer(layerNew){
@@ -818,6 +821,7 @@ class Sprite{
 		}
 	}
 };
+Space.Sprite=Sprite;
 Space.RefEntity.prototype.goto=Sprite.add.movement.GoTo(function(oldLayer,newLayer){
 	if(!isNaN(this.id)){
 		this.detach(oldLayer);
@@ -1091,10 +1095,10 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 				reflectVel:()=>{
 					//phisics part 2: do collisions + move object
 					if(this.Physics.isColliding){
-						let relPos=this.Physics.minObj;let obj=relPos.proxy;
+						let relPos=this.Physics.minObj;let obj=relPos.obj;
 						switch(obj.type.shape){
 							case"circle":
-								let dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(obj.coords,obj.velocity));
+								let dif=Math.minusVec2(Math.addVec2(this.coords,this.velocity),Math.addVec2(relPos.coords,relPos.velocity));
 								let len=Math.len2(dif);
 								let vScalers=[[0,0],[0,0]];
 								let inf0=0+(this.mass==Infinity||this.type.movable===false);
@@ -1152,12 +1156,12 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 									Math.rotate(vel1[1],angle,0,1),
 								];
 								this.velocity=vel1[0];
-								obj.velocity=vel1[1];
+								relPos.velocity=vel1[1];
 								if(len>0&&len<(this.size+obj.size)){
 									if(this.type.movable!==false)
-										this.coords=Math.lerpV(this.coords,obj.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
+										this.coords=Math.lerpV(this.coords,relPos.coords,(len-this.size-obj.size)/len/(1+(obj.type.movable!==false)));
 									if(obj.type.movable!==false)
-										obj.coords=Math.lerpV(obj.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
+										relPos.coords=Math.lerpV(relPos.coords,this.coords,(len-this.size-obj.size)/len/(1+(this.type.movable!==false)));
 								}
 							break;
 						}
@@ -1172,7 +1176,7 @@ function Collider(SpaceLayer=this.SpaceLayer){//spriteRef=Collider.call(sprite).
 					let minObj=null;
 					//phisics layer 1: get/handle collisions
 					//for(let i=0;i<this.layer.list.length;i++){
-					for(let relPos of this.layer.viewSearch(this.size*1)){
+					for(let relPos of this.layer.viewSearch()){//this.size*4)){
 						let obj=relPos.obj;//this.layer.list[i];
 						if(obj==this)continue;
 						if(obj.type!=undefined)if(obj.type.shape!=undefined&&obj.type.physical!=undefined){
