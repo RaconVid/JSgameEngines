@@ -1,11 +1,12 @@
 //Space
 	Space={
 		Camera:class{
+
 			constructor(){window.numN=1;//to delete: testing
 				this.coords=[0,0];
-				this.layerRef=null;
-				this.viewList=[];
-				this.pos=new Space.Pos();
+				//this.layerRef=null; now use this.pos.layer
+				//this.viewList=[];
+				this.pos=new Space.Pos({layer:null});
 				this.n=0;
 				this.type={
 					shape:"point",
@@ -50,7 +51,7 @@
 			viewSearchV1_1(objs,filter,list,pos,n,portalFilter,portalList,toDo){
 				//function(objs,filter,list,pos,n)
 				{
-					if(objs==undefined)objs=this.layerRef.list;
+					if(objs==undefined)objs=this.pos.layer.list;
 					if(!(objs instanceof Array)){
 						filter=objs.filter;
 						list=objs.list;
@@ -58,7 +59,7 @@
 						n=objs.n;
 						portalFilter=objs.portalFilter;
 					}
-					if(objs==undefined)objs=this.layerRef.list;
+					if(objs==undefined)objs=this.pos.layer.list;
 					if(filter==undefined){filter=this.filter;}
 					if(list==undefined)list=[];
 					if(pos==undefined)pos=new Space.Pos();
@@ -75,7 +76,7 @@
 				// both obj and obj1 are an instanceof relPos (relativePosisions) 
 				for(let i=0;i<objs.length;i++){
 					let obj=objs[i];//obj=RefPos;
-					/*TESTING*/if(!TESTING)if(obj.obj==this)continue;
+					//if(obj.obj==this)continue;
 					let obj1=new Space.RelPos(obj.obj,Space.Pos.add(obj.pos,camPos));
 					if(!filter(obj1,list,obj))continue;
 					list.push(obj1);
@@ -100,15 +101,20 @@
 				}
 				return list;
 			}
-			static *viewSearchV1_2(camRelPos){
-				for(let relPos of relPos.pos.layer){
-					let obj=relPos;
-					yield relPos;
+			viewSearchV1_2(){
+				let list=[];
+				for(let i of this.constructor.viewSearchV1_2(this)){
+					list.push(list);
 				}
+				return list;
 			}
+			static *viewSearchV1_2(camRelPos){
+				yield*camRelPos.pos.layer.viewSearch();
+			}
+			//V1_0
 			static viewSearchOld(objs,filter,list,pos,n,portalFilter,portalList){
 				{
-					if(objs==undefined)objs=this.layerRef.list;
+					if(objs==undefined)objs=this.pos.layer.list;
 					if(!(objs instanceof Array)){
 						filter=objs.filter;
 						list=objs.list;
@@ -116,7 +122,7 @@
 						n=objs.n;
 						portalFilter=objs.portalFilter;
 					}
-					if(objs==undefined)objs=this.layerRef.list;
+					if(objs==undefined)objs=this.pos.layer.list;
 					if(filter==undefined){filter=this.filter;}
 					if(list==undefined)list=[];
 					if(pos==undefined)pos=new Space.Pos();
@@ -166,7 +172,7 @@
 				});
 				this.layerDraw.viewList=[];
 				this.layerDraw.sprite=this;
-				for (let i=0;i<10;i++) {
+				for (let i=0;i<20;i++) {
 					this.layerDraw.list.push(new mainGame.UpdateLayer(function(){
 						this.layerScript();
 						this.list=[];
@@ -300,7 +306,7 @@
 			}
 			mat=[[1,0],[0,1]];
 			vec=[0,0];
-			//layer=undefined;
+			layer=undefined;
 			add(b){
 				return new this.constructor({
 					mat:[
@@ -316,7 +322,8 @@
 					vec:[
 						b.vec[0]+this.vec[0]*b.mat[0][0]+this.vec[1]*b.mat[1][0],
 						b.vec[1]+this.vec[0]*b.mat[0][1]+this.vec[1]*b.mat[1][1]
-					]
+					],
+					layer:this.layer,
 				});
 			}
 			minus(b){
@@ -341,7 +348,8 @@
 					vec:[
 						det*((a.vec[0]-b.vec[0])*b.mat[0][0]-(a.vec[1]-b.vec[1])*b.mat[1][0]),
 						det*((a.vec[1]-b.vec[1])*b.mat[1][1]-(a.vec[0]-b.vec[0])*b.mat[0][1]),
-					]
+					],
+					layer:b.layer?b.layer:this.layer,
 				});
 			}
 			static add(a=new this,b=new this){
@@ -359,7 +367,8 @@
 					vec:[
 						b.vec[0]+a.vec[0]*b.mat[0][0]+a.vec[1]*b.mat[1][0],
 						b.vec[1]+a.vec[0]*b.mat[0][1]+a.vec[1]*b.mat[1][1]
-					]
+					],
+					layer:this.layer,
 				})
 			}
 			static minus(a=new this,b=new this){
@@ -541,7 +550,7 @@
 //----
 class Sprite{
 	constructor(oldObj){
-		this.add=this.constructor.addSprite(this);
+		return this.constructor.addSprite(oldObj);
 	}
 	static constructorShell(){
 		let newObj=new Sprite.addSprite({
@@ -650,20 +659,20 @@ class Sprite{
 			},
 			type:{shape:"circle",...construct.type},
 			goto(coords){this.refEntity.coords=coords;},
-			*viewSearch(){
-				yield*this.camera.cameraObj.viewList;
+			*viewSearch(radius){
+				yield*this.layer.viewSearch(radius,this.coords);//yield*//this.camera.cameraObj.viewList;
 			},
 			get layer(){return this.refEntity.layer},
 			set layer(layerNew){
 				this.refEntity.detach();
 				this.refEntity.attach(layerNew);
 			},
-			camera:Collider.call({
+			camera:{},/*Collider.call({
 				entity:obj,
 				get coords(){return this.entity.coords;},
 				get velocity(){return this.entity.velocity;},
 				get layer(){return this.entity.layer;},
-			}).addCamera(),
+			}).addCamera(),*/
 		})),construct.Draw.scripts));
 		obj.type.Sprite_v1=true;
 		if(!obj.layer)obj.layer=world.chunk1;

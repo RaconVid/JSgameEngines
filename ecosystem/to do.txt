@@ -1,8 +1,5 @@
 to do:
 Math.js: Vector/Matrix classes
-gameBits.js:{
-	
-}
 eco.js - resetting system:{
 	save,load,
 }

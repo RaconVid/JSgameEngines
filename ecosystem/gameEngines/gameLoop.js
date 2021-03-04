@@ -22,7 +22,7 @@ class MainGame{
 				this.isDeleting=false;
 				this.sprite=sprite;
 				this.layer=layer;
-				if(layer !=undefined){
+				if(layer){
 					this.attachLayer(layer,layer_i);
 				}
 				this.script=script;

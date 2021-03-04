@@ -167,7 +167,7 @@ class World{
 		//----
 			const cameraA=new Space.Camera().addDraw();
 			cameraA.type.portal={camera_v1:true,};
-			cameraA.layerRef=l2;
+			cameraA.pos.layer=l2;
 			cameraA.pos.vec=Math.minusVec2(c1,c2);
 			const portalA={
 				type:newObj.type,
@@ -175,7 +175,7 @@ class World{
 				vec1:c1,
 				vec2:v1,
 				layer:l1,
-				posB:{layer:l2,vec:[Math.minusVec2(c1,c2)],mat:[[1,0],[0,1]]}
+				//posB:{layer:l2,vec:[Math.minusVec2(c1,c2)],mat:[[1,0],[0,1]]}
 			};
 			portalA["temperyCamera"]=cameraA;
 			newObj
@@ -240,7 +240,7 @@ class World{
 			let relPos1=new Space.RelPos(this.mainChunk);
 			let yielded=yield relPos1;
 			if(yielded==undefined||yielded)yield* this.mainChunk.list;
-			for(let l=1;l<maxChunks;l++){
+			for(let l=0;l<maxChunks;l++){
 				relChunk=this.chunks[l];
 				list=relChunk.layer.list;
 				for(let i=0;i<list.length;i++){
@@ -248,17 +248,31 @@ class World{
 					relPos1=new Space.RelPos(relPos,relChunk);
 					yielded=yield relPos1;
 					if(yielded==undefined||yielded){
-						if(relPos.obj.type.chunk)yield*this[itemSearch](radius,relPos1);
+						let temp=relPos.obj.type;
+						if(relPos.obj.type.chunk){
+							yield*this[itemSearch](radius,relPos1);
+							continue;
+						}
+						if(temp=temp.portal)if(temp.camera_v1){
+							yield*this[itemSearch](
+								radius,
+								new Space.RelPos(relPos1,relPos1.pos.add(relPos1.obj.pos)),
+								relPos1.obj.pos.layer
+							);
+							continue;
+						}
 					}
 				}
+				list=relChunk.layer.portals.list;
+
 			}
 		};
-		*[itemSearch](radius,relPos,objList=[]){
-			let relPos1=new Space.RelPos();
+		*[itemSearch](radius,relPos,chunkObj=relPos.obj,objList=[]){
+			let relPos1;
 			let pos=new Space.Pos(relPos.pos);
 			let yielded;
 			pos.vec=Clone(relPos.coords);
-			for(let i of relPos.obj.list){
+			for(let i of chunkObj.list){
 				if(objList.includes(i))continue;
 				objList.push(i);
 				relPos1=new Space.RelPos(i,pos);
@@ -288,7 +302,7 @@ class World{
 			{//minumum radius=1
 				//"10" = "y,-1" = [0,-1]
 				//"00" = "x,-1" = [-1,0]
-				this.chunks=[{layer:this.mainChunk,vec:[0,0]}];//[this.RelChunk.call({},refEntity)];
+				this.chunks=[new Space.Pos({layer:this.mainChunk,vec:[0,0]})];//[this.RelChunk.call({},refEntity)];
 				this.distLevels.push(this.chunks.length);
 				this.chunks.push(
 					this.getChunk(0,"00",[-1,0]),
@@ -331,16 +345,4 @@ class World{
 			}
 		};
 	};
-}
-if(false){
-	//this instanceof Creature == true; ()
-	let viewList=[...a];
-	for(let creature of this.viewList){
-		//Math.len2(vec2 a,vec2 b)=|a-b|;
-		if(Math.len2(creature.coords,this.coords)<10){
-			creature.coords=Math.vec2(this.coords);
-			creature.coords[0]=10;
-			creature.coords[1]=-10;
-		}
-	}
 }

@@ -166,9 +166,11 @@ class IOEngine{
 				this.htmlObject=htmlObject;//htmlObject=canvas
 				let windowFunctions={
 					keydown:(event)=>{
-						if(event.key in this.keys){
-							this.keys.current=event.key;
-							this.keys[event.key].down=true;
+						let key=event.key;
+						if(key.length==1)key=key.toLowerCase();
+						if(key in this.keys){
+							this.keys.current=key;
+							this.keys[key].down=true;
 						}
 						if(event.code in this.keys){
 							this.keys.current=event.key;
