@@ -240,7 +240,7 @@ class World{
 			let relPos1=new Space.RelPos(this.mainChunk);
 			let yielded=yield relPos1;
 			if(yielded==undefined||yielded)yield* this.mainChunk.list;
-			for(let l=0;l<maxChunks;l++){
+			for(let l=1;l<maxChunks;l++){
 				relChunk=this.chunks[l];
 				list=relChunk.layer.list;
 				for(let i=0;i<list.length;i++){

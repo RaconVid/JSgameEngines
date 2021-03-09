@@ -251,6 +251,10 @@
 				else this.obj[prop]=value;
 				return true;
 			}
+			get layer(){
+				if(this.pos.layer)return this.pos.layer;
+				else return this.relObj.layer;
+			}
 			get coords(){
 				return this.vec(this.relObj.coords,this.pos);
 			}
@@ -580,6 +584,7 @@ class Sprite{
 			},draw=>draw.list[4]],
 			//...other Drawing scripts
 		];
+		return newObj;
 	}
 	static constructorExample(){
 		let newObj=new Sprite.addSprite({
@@ -609,9 +614,12 @@ class Sprite{
 			//...other scripts
 		};
 		newObj.Draw.scripts=[
-			[()=>{
+			[()=>{//main layer 4
 				Draw.circle(0,0,10,"grey");
 			},draw=>draw.list[4]],
+			[()=>{//upper layer 7
+				Draw.square(0,0,8,"blue");
+			},draw=>draw.list[7]],
 			//...other Drawing scripts
 		];
 	}
@@ -646,15 +654,15 @@ class Sprite{
 			deleteList:[
 				function(){
 					this.scripts.detachScripts();
-					this.camera.detachScripts();
+					//this.camera.detachScripts();
 					this.refEntity.detachLayer();
 				}.bind(obj),
 				...construct.deleteList,
 			],
 			clone(){},
 			delete(){
-				for(let i=0;i<this.detachList.length;i++){
-					this.detachList[i]();
+				for(let i=0;i<this.deleteList.length;i++){
+					this.deleteList[i]();
 				}
 			},
 			type:{shape:"circle",...construct.type},
