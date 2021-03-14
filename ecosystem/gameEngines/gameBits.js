@@ -330,7 +330,7 @@
 					layer:this.layer,
 				});
 			}
-			minus(b){
+			sub(b){//minus
 				let a;
 				if(b==undefined){
 					b=this;
@@ -375,7 +375,7 @@
 					layer:this.layer,
 				})
 			}
-			static minus(a=new this,b=new this){
+			static sub(a=new this,b=new this){
 				let det=1/(b.mat[0][0]*b.mat[1][1]-b.mat[0][1]*b.mat[1][0]);
 				return new this({
 					mat:[

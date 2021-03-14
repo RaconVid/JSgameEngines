@@ -234,7 +234,7 @@ class World{
 			let distanceLevel=Math.ceil(radius/this.mainChunk.size);
 			let distLevel=this.distLevels[distanceLevel];
 			let maxChunks;
-			if(distLevel==undefined)maxChunks=this.chunks.length;
+			if(distLevel==undefined||radius==undefined)maxChunks=this.chunks.length;
 			else maxChunks=distLevel;
 			let relChunk={},list;
 			let relPos1=new Space.RelPos(this.mainChunk);

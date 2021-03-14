@@ -83,6 +83,15 @@ class IOEngine{
 				var hex=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
 				return(hex[Math.floor(decimal/16)]+hex[Math.floor(decimal)%16]);
 			}
+			hslaColour(h,s,l,a){//0
+				return(
+				 	"hsla("
+					+Math.floor(360*h)+","
+					+Math.floor(100*s)+"%,"
+					+Math.floor(100*l)+"%,"
+					+a+")"
+				);
+			}
 			hslColour(h,s,l){//0
 				return(
 				 	"hsl("
