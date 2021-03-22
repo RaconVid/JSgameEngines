@@ -640,17 +640,19 @@ class Sprite{
 		Space.addDrawUpdates.call(
 		Object.defineProperties(obj,Object.getOwnPropertyDescriptors({
 			...construct,
-			scripts:{
+			scripts:Object.assign([],{
 				detachScripts(){
 					for(let i in this){
 						if(typeof this[i]=="object"){
 							if(this[i].detach)this[i].detach();
+							if("isDeleting" in this[i]||this[i] instanceof mainGame.UpdateScript)//the instanceof bit is not needed
+								this[i].isDeleting=true;
 							else if(this[i].return)this[i].return();
 						}
 					}
 				},
 				...construct.scripts,
-			},
+			}),
 			deleteList:[
 				function(){
 					this.scripts.detachScripts();

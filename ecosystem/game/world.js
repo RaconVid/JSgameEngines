@@ -14,6 +14,7 @@ class World{
 			}
 		}
 		mapChunks[0][0]=this.makeChunk(this.chunk1);
+		//if(TESTING)return;//testing without portals
 		let neighbours=[[0,0],[0,1],[1,0],[1,1]]
 		for(let y=0;y<mapSize[1];y++){
 			for(let x=0;x<mapSize[0];x++){

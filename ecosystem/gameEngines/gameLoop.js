@@ -80,7 +80,16 @@ class MainGame{
 			}
 			detach(){
 				if(this.script.return){
-					this.script.return();
+					try{
+						this.script.return();
+					}catch(error){
+						if(error.message!="already executing generator"){
+							throw error;
+						}
+					}
+					finally{
+						this.isDeleting=true;
+					}
 				}
 				else{
 					this.isDeleting=true;

@@ -61,6 +61,7 @@ CloneTo=function(data,ref){//Clone data to existing object (i.e. "ref")
 		return(ref);
 	}
 }
+/*Not my code
 function getDesc (obj, prop) {
   var desc = Object.getOwnPropertyDescriptor(obj, prop);
   return desc || (obj=Object.getPrototypeOf(obj) ? getDesc(obj, prop) : void 0);
@@ -92,6 +93,7 @@ multiInherit=function(...protos) {
     defineProperty: (target, prop, desc) => false,
   }));
 }
+*/
 //unfinished
 class Reference{
 	constructor(obj){
