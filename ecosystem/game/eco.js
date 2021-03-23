@@ -163,6 +163,10 @@ function setDebug(){if(DEBUG_UI)if(1){
 						yield newRelPos;
 					}
 				}
+				function* waitTime(seconds){
+					let t=seconds;
+					while((t-=mainGame.time.delta)>0){yield t;}
+				};
 			}
 		}
 	}
@@ -178,7 +182,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 				}
 			],
 			Draw:{scripts:[]},
-			type:{rock:true},
+			type:{scissors:true,rock:true},
 		};
 		player1.Draw.scripts=[
 			costume(function drawing(){
@@ -197,6 +201,19 @@ function setDebug(){if(DEBUG_UI)if(1){
 						let forceNeeded=len;// *this.mass
 						let force=Math.min(moveForce*mainGame.time.delta,forceNeeded);
 						this.velocity=Math.lerp2(this.velocity,targetMoveVelocity,force/forceNeeded);
+					}
+					yield;
+				}
+			}.bind(player1)()),
+			trigger_killCreature:new mainGame.UpdateScript(l=>l.update.list[4],function*(){
+				while(true){
+					if(Inputs.getKey("k").down){
+						for(let i of this.viewSearch()){
+							if(i.obj==this)continue;
+							if(i.obj.type.rock){
+								i.obj.energy=15;
+							}
+						}
 					}
 					yield;
 				}
@@ -232,6 +249,10 @@ function setDebug(){if(DEBUG_UI)if(1){
 				let startTime=mainGame.time.start;
 				let time1=0;
 				let gotoCoords;
+				let obj1=costume(12,
+					()=>{ctx.font="10px Arial";ctx.fillStyle="white"; ctx.fillText(Math.round(targetObj.coords[0]),0,0);}
+				);
+				this.Draw.scripts[1]=(obj1);
 				while((time1=mainGame.time.start-startTime)<2){
 					gotoCoords=Math.vec2(Math.dif2(targetObj.coords,this.coords));
 					let neededForce=Math.len2(Math.dif2(targetObj.coords,this.coords),this.velocity);
@@ -296,7 +317,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 				newObj.subScripts={
 					rockLoop:function*(){
 						this.type.rock=true;
-						if(TESTING)return;
+						//if(TESTING)return;
 						hunting:while(true){
 							this.type.rock=true;
 							let minObj=null;let minDist=Infinity;
@@ -343,7 +364,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 											}
 											else{
 												if(relPos.obj==targetObj.obj){
-													targetObj.pos=relPos.pos;
+													targetObj.relObj=relPos;
 													found=true;break;
 												}
 											}
@@ -366,6 +387,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 								newObj.coords=Math.addVec2(this.coords,[40,40]);
 								newObj.refEntity.pos=new Space.Pos(this.refEntity.pos);
 							}
+							yield;
 						}
 					}.bind(newObj),
 					paperLoop:function*(){
