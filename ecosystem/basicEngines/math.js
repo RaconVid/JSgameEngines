@@ -409,7 +409,7 @@
 	};
 	Math.Matrix2x2=class extends Array{//new mat2x2([[xx,xy],[yx,yy]]);
 		constructor(array2D=[[1,0],[0,1]]){
-			super(array2D);
+			super(...array2D);
 			/*super([1,0,0,1]);
 			if(arguments.length==4){//new mat2x2(xx,xy,yx,yy);
 				super(arguments);
