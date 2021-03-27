@@ -1,24 +1,8 @@
 to do:
-
-collider.attachSpace();
-
+eco.js: ~line 286 - refind object
+Math.js: Vector/Matrix classes
 eco.js - resetting system:{
 	save,load,
 }
-add portals:{
-	cave portals
-}
-
-portal bugs:[
-	(if world < 2x2 chunks) then Cameras wont see portals in [0,y] and [x,0] ,
-];
-
-
-arrays:{
-	ordered:
-	id:
-
-}
-phase:{
-	add
-}
+Camera class;
+add portals:cave portals

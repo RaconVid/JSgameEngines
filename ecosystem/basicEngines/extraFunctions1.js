@@ -27,7 +27,7 @@ Clone=function(obj){
 }
 //Clone data to ref;
 //Clone data from ref;
-CloneTo=function(data,ref){//Clone data to existing object(i.e. "ref")
+CloneTo=function(data,ref){//Clone data to existing object (i.e. "ref")
 	//objA = obj
 	//objb = objClone
 	if(data === null || typeof data !== "object"){
@@ -36,7 +36,7 @@ CloneTo=function(data,ref){//Clone data to existing object(i.e. "ref")
 	}
 	if(data instanceof Array){
 		for(var i=0; i<data.length; i++){
-			ref[i]=Clone(data[i]);
+			ref[i]=data[i];//Clone(data[i]);
 		}
 		if(ref instanceof Array){
 			let len=ref.length-data.length;
@@ -55,14 +55,47 @@ CloneTo=function(data,ref){//Clone data to existing object(i.e. "ref")
 	if(data instanceof Object){
 		for(var i in data){
 			if(data.hasOwnProperty(i)){
-				ref[i]=Clone(data[i]);
+				ref[i]=data[i];//Clone(data[i]);
 			}
 		}
 		return(ref);
 	}
 }
-//unfinnished
-class Refference{
+/*Not my code
+function getDesc (obj, prop) {
+  var desc = Object.getOwnPropertyDescriptor(obj, prop);
+  return desc || (obj=Object.getPrototypeOf(obj) ? getDesc(obj, prop) : void 0);
+}
+multiInherit=function(...protos) {
+  return Object.create(new Proxy(Object.create(null), {
+    has: (target, prop) => protos.some(obj => prop in obj),
+    get (target, prop, receiver) {
+      var obj = protos.find(obj => prop in obj);
+      return obj ? Reflect.get(obj, prop, receiver) : void 0;
+    },
+    set (target, prop, value, receiver) {
+      var obj = protos.find(obj => prop in obj);
+      return Reflect.set(obj || Object.create(null), prop, value, receiver);
+    },
+    *enumerate (target) { yield* this.ownKeys(target); },
+    ownKeys(target) {
+      var hash = Object.create(null);
+      for(var obj of protos) for(var p in obj) if(!hash[p]) hash[p] = true;
+      return Object.getOwnPropertyNames(hash);
+    },
+    getOwnPropertyDescriptor(target, prop) {
+      var obj = protos.find(obj => prop in obj);
+      var desc = obj ? getDesc(obj, prop) : void 0;
+      if(desc) desc.configurable = true;
+      return desc;
+    },
+    preventExtensions: (target) => false,
+    defineProperty: (target, prop, desc) => false,
+  }));
+}
+*/
+//unfinished
+class Reference{
 	constructor(obj){
 		this.ref=obj;
 	}

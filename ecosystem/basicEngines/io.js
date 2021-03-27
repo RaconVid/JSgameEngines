@@ -83,6 +83,15 @@ class IOEngine{
 				var hex=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
 				return(hex[Math.floor(decimal/16)]+hex[Math.floor(decimal)%16]);
 			}
+			hslaColour(h,s,l,a){//0
+				return(
+				 	"hsla("
+					+Math.floor(360*h)+","
+					+Math.floor(100*s)+"%,"
+					+Math.floor(100*l)+"%,"
+					+a+")"
+				);
+			}
 			hslColour(h,s,l){//0
 				return(
 				 	"hsl("
@@ -160,13 +169,19 @@ class IOEngine{
 				}
 				this.mouse=new this.Mouse();
 				this.keys={current:false};
-				this.htmlObject=htmlObject;
+				this.htmlObject=htmlObject;//canvas
 			}
 			start(htmlObject=this.htmlObject){
-				this.htmlObject=htmlObject;
+				this.htmlObject=htmlObject;//htmlObject=canvas
 				let windowFunctions={
 					keydown:(event)=>{
-						if(event.key in this.keys){
+						let key=event.key;
+						if(key.length==1)key=key.toLowerCase();
+						if(key in this.keys){
+							this.keys.current=key;
+							this.keys[key].down=true;
+						}
+						if(event.code in this.keys){
 							this.keys.current=event.key;
 							this.keys[event.key].down=true;
 						}
@@ -174,10 +189,12 @@ class IOEngine{
 					keyup:(event)=>{
 						if(event.key in this.keys)
 						this.keys[event.key].down=false;
+						if(event.code in this.keys)
+						this.keys[event.code].down=false;
 					},
 				};
 				let functions={
-					mousemove:(event)=>{alert
+					mousemove:(event)=>{
 						this.mouse.x=event.clientX/Draw.scale;
 						this.mouse.y=event.clientY/Draw.scale;
 					},
@@ -215,7 +232,7 @@ class IOEngine{
 			}
 			startLoop(){
 				let endTime=this.real;
-				if(endTime-this.start>0)this.delta=Math.min(1/15,endTime-this.start);
+				if(endTime-this.start>0)this.delta=(endTime-this.start);
 				this.start=endTime;
 			}
 		};

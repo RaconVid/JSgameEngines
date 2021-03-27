@@ -1,6 +1,6 @@
 Images={
 	icon:"images/sublimetext.PNG",
-	rock:"images/rock.PNG",
+	//rock:"images/rock.PNG",
 }
 //new Promise(function(){
 	for(let i in Images){
@@ -9,4 +9,3 @@ Images={
 		Images[i]=img;
 	}
 //});
-	
