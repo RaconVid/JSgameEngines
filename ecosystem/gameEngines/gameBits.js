@@ -15,8 +15,8 @@ function gameBitsTester(){
 				this.pos1.set((new Space.Pos({obj:this,vec:[Math.cos(t*tau)*40,Math.sin(t*tau)*40]})));
 				this.pos2.set(//this.pos1.sub()
 					(new Space.Pos({obj:this.subEnt,mat:[[1,0],[0,1]],vec:vec}))
-					//.add(new Space.Pos({rel:this}))
-					//.add(this.pos1)
+					.add(new Space.Pos({rel:this}))
+					.add(this.pos1)
 				);
 			}
 			setPos();
@@ -65,11 +65,12 @@ Space={
 	//pos has: {vec,mat,rel,obj};
 	//only moves rel to obj, ignors other chunks
 	Space.Pos=class Pos{
+		static nullObject=new Set();
 		constructor(pos={}){
 			Object.assign(this,pos);
 		}
 		get(){
-
+			return new Pos(this);
 		}
 		set(pos=Pos.prototype){
 			Object.assign(this,pos);
@@ -78,14 +79,17 @@ Space={
 		//addR == reversed A.add(B)->B.add(A)
 		addR(pos){return pos.add(this);}
 		subR(pos){return pos.sub(this);}
-		add(pos){
+		add(pos){let ans=new Pos();
 			if(pos==undefined){
-				return new Pos({...this,rel:null});
+				ans.set(this);
+				ans.rel=undefined;
+				return ans;
 			}
-			pos=new Pos(pos);
+			if(!(pos instanceof Pos))pos=new Pos(pos);
 			//this.vec=this.vec.add(pos.mat).add(pos.vec);
 			//this.mat=this.mat.add(pos.mat);
-			if(this.rel!=pos.obj&&pos.obj!=null){return new Pos(this)};
+			if(this.rel!=pos.obj&&(pos.obj!=undefined&&this.rel!=undefined)){return new Pos(this)};
+			
 			if(!pos.hasOwnProperty('mat'))return new Pos({
 				...this,
 				vec:[pos.vec[0]+this.vec[0],pos.vec[1]+this.vec[1]],
@@ -111,6 +115,7 @@ Space={
 				rel:pos.rel,
 			});
 		}
+		toString(){return "Pos{ obj:("+this.rel+" -> "+this.obj+") * mat:["+this.mat+"] + vec:["+this.vec+"] }"}
 		sub(pos){
 			if(pos==undefined){//inverse
 				if(!this.hasOwnProperty('mat'))return new Pos({
@@ -134,18 +139,27 @@ Space={
 				});
 			}
 			else{
-				pos=new Pos(pos);
+				if(!(pos instanceof Pos))pos=new Pos(pos);
 				return this.add(pos.sub())
 			}
 		}
 	};
+	//note (void 0) == undefined it just is
 	Space.Pos.prototype.vec=[0,0];//new Math.Vector2();
 	Space.Pos.prototype.mat=[[1,0],[0,1]];//new Math.Matrix2();
-	Space.Pos.prototype.rel=null;//relitiveObject (useraly null) add(pos) = rel->obj;
-	Space.Pos.prototype.obj=null;
+	Space.Pos.prototype.rel=undefined;//relitiveObject (useraly (void 0)) add(pos) = rel->obj;
+	Space.Pos.prototype.obj=undefined;
 }
 Space.RelPos=class RelPos extends Space.Pos{
 	//+pos = rel->obj; entity->chunk
+	constructor(){//
+		super(...arguments);
+	}
+	get(posRel=undefined,posObj=undefined){
+		if(posRel==this){
+
+		}
+	}
 };
 Space.Chunk=class Chunk extends Map{//array of Space.Pos({rel:chunk,obj:entity});
 	static chunkSymbol=Symbol("chunk");
@@ -156,7 +170,7 @@ Space.Chunk=class Chunk extends Map{//array of Space.Pos({rel:chunk,obj:entity})
 	*viewSearch(radius,camPos=new Space.Pos()){
 		//let pos =new Space.Pos({obj:this});
 		for(let [entity,pos] of this){
-			let newPos=camPos.add(pos.add(camPos.sub(camPos)));
+			let newPos=camPos.add().add(pos);
 			yield [entity,newPos];
 			if(this.chunkSymbol in entity){//viewSearch entity
 				yield*viewSearch(radius,newPos)
