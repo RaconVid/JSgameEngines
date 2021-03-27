@@ -151,6 +151,48 @@ class MainGame{
 
 			}
 		};
+
+		//V2.1 gameEngine
+		this.UpdateScript=class{
+			event = new WeakRef(null);
+			constructor(eventGetter,script){
+				this.getEvent=eventGetter;
+			}
+			onload(){
+				if(this.event.deref()){
+
+				}
+				this.getEvent(mainGame).add(this);
+				this.event = new WeakRef(this.getEvent(mainGame));
+			}
+			unload(){
+				let currentEvent=this.event.deref();
+				if(currentEvent){
+					currentEvent.delete(this);
+				}
+			}
+			delete(){
+
+			}
+			[Symbol.iterator](){
+				return {next(){},return(){},throw(){}};
+			}
+		}
+		this.UpdateLayer=class UpdateLayer extends Map{
+			constructor(list){
+				super(list);
+			}
+			onUpdate(){layerScript();}
+			layerScript(){
+				for(let [key,value] of this){
+					if(typeof value=="function")value();
+					value.next?.();
+				}
+			}
+			UpdateScript(scriptFunc){
+				this.add(scriptFunc);
+			}
+		}
 	}
 	construct_Consts(){
 		this.time=new Time();
