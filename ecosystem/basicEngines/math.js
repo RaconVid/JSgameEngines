@@ -393,7 +393,7 @@
 			//(sub==subtract==minus)
 			static sub(vecA,vecB){
 				return (typeof vecB[0]=="number")
-				? this.addVec2(vecA,vecB)
+				? this.subVec2(vecA,vecB)
 				: (()=>{throw "vec2.sub(Mat2x2) isnt supported.. yet"});
 			}sub(vec){return this.constructor.sub(this,vec);}
 			static subVec2(vecA,vecB){
