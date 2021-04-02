@@ -1,0 +1,20 @@
+Rock:{
+	envioment:empty space,
+	ecosystem:rock papar scissors ecosystem,
+	properties:{
+		keywords:[metallic,rock,],
+		type:[rock,],
+		are very heavy;
+		are about 1.5 times the size of the player;
+	},
+	behaviour/s:{
+		interacts 
+	},
+	description:{//other things about it not covered by 
+		moves slow;
+		eats scissors;
+		avoids papers;
+		reproduces by mating;
+	},
+
+}
