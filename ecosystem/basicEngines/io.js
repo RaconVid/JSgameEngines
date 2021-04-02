@@ -22,18 +22,16 @@ class IOEngine{
 				this.scale=1;
 			}
 			transform(pos){
-				ctx.translate(
-					pos.vec[0],
-					pos.vec[1],
-				);
 				ctx.transform(
 					pos.mat[0][0],
 					pos.mat[0][1],
 					pos.mat[1][0],
 					pos.mat[1][1],
-					0,0,
+					pos.vec[0],
+					pos.vec[1],
 				);
 			}
+			//may not work with newer version
 			undoTransform(pos){//{mat,vec}
 				ctx.translate(
 					-pos.vec[0],

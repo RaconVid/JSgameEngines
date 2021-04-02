@@ -152,45 +152,88 @@ class MainGame{
 			}
 		};
 
-		//V2.1 gameEngine
+		//V20.2.1 gameEngine
 		this.UpdateScript=class{
-			event = new WeakRef(null);
-			constructor(eventGetter,script){
+			deleter=()=>false;
+			constructor(eventGetter,scriptGetter){
+				//new US(l=>l.draw[4],function*(deleter){...deleter()}))
 				this.getEvent=eventGetter;
+				this.getScript=scriptGetter;
+				this.deleter=getEvent(mainGame.layers).add(this.getScript(()=>this.onDelete(),))
 			}
-			onload(){
-				if(this.event.deref()){
-
-				}
-				this.getEvent(mainGame).add(this);
-				this.event = new WeakRef(this.getEvent(mainGame));
+			onLoad(){
+				eventGetter().add(this.script)
 			}
-			unload(){
-				let currentEvent=this.event.deref();
-				if(currentEvent){
-					currentEvent.delete(this);
-				}
+			onUnload(){
+				
 			}
-			delete(){
-
+			onDelete(){
+				this.deleter();
 			}
 			[Symbol.iterator](){
 				return {next(){},return(){},throw(){}};
 			}
 		}
-		this.UpdateLayer=class UpdateLayer extends Map{
-			constructor(list){
-				super(list);
+		this.UpdateLayer=class UpdateLayer extends Array{
+			constructor(length=10){
+				if(arguments.length<=1&&typeof length=='number'){
+					super(length);
+					for(let i=0;i<length;i++){
+						this[i]=new this.constructor(0);
+					}
+				}
+				else {
+					super(...arguments);
+				}
 			}
-			onUpdate(){layerScript();}
+			//events
+				onUpdate(){
+					this.layerScript();
+				}
+				onload(){
+
+				}
+				unload(){
+
+				}
+				onDelete(){
+
+				}
+			//item handling
+				add(item){
+					this.push(item);
+					return ()=>this.delete(item);
+				}
+				set(item,newItem){
+					let index=this.indexOf(item);
+					if(index!=-1){
+						this[index]=newItem;
+					}
+					return ()=>this.delete(newItem);
+				}
+				delete(item){
+					let index=this.indexOf(item);
+					if(index!=-1){
+						this.splice(index,1);
+						return ()=>this.add(item);
+					}
+					else return false;
+				}
+				clear(){
+					this.splice(0,this.length);
+				}
+			*iterator(){
+
+			}
 			layerScript(){
-				for(let [key,value] of this){
-					if(typeof value=="function")value();
-					value.next?.();
+				for(let i of this){
+					if(typeof i=='function')i();
+					else if(i.next)i.next();
+					else if(i.onUpdate)i.onUpdate();
 				}
 			}
 			UpdateScript(scriptFunc){
-				this.add(scriptFunc);
+				this(scriptFunc);
 			}
 		}
 	}

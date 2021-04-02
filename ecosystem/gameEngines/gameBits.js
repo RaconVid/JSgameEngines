@@ -7,7 +7,21 @@ function gameBitsTester(){
 		colour:"red",
 		pos1:new Space.Pos,
 		pos2:new Space.Pos,
-		onload(){  
+		onload(){
+			const addScript=function(layer=l=>l.update.get(4),funcGen,entity={}){
+				let layerSet=layer(mainGame.layers);
+				let iter;
+				let entsymbol=Symbol([layer,funcGen.name]);
+				let deleter=function(){
+					//iter.return();
+					delete entity[entsymbol];
+					return layerSet.delete(iter);
+				};
+				iter=funcGen(deleter,layerSet,funcGen);
+				layerSet.push(iter);
+				entity[entsymbol]=iter;
+				return deleter;
+			}
 			let setPos=()=>{
 				const tau=Math.PI*2;
 				let t=mainGame.time.start/3;
@@ -26,8 +40,84 @@ function gameBitsTester(){
 			];
 			{
 				let reff=new WeakRef(setPos);
-				mainGame.layers.draw.set(reff,()=>reff.deref()());
+				mainGame.layers.draw.add(()=>{reff.deref()()});
+				entity[Symbol("draw square script")]=reff;
 			}
+			addScript(l=>l.draw[4],function*(thisDeleter,thisLayer,thisGenerator){
+				let mainFunc=function*(){
+					const tau=Math.PI*2;
+					const delta=1/1000;
+					function*waitTime(t){
+						while((t-=mainGame.time.delta)>0)yield t;
+					};
+					function reset(){
+						mainDir=startDir1.get();//main direction
+						mainPos=startPos1.get();
+						time=0;
+					}
+					const startDir1=new Space.Pos({vec:[-3,-4]});
+					const startPos1=new Space.Pos({
+						vec:[1,2],
+						mat:[[1,0],[0,1]]
+					});
+					let mainDir;
+					let mainPos;
+					let time;
+					reset();
+					function drawPos(pos=mainPos){const scale=20;
+						ctx.save();
+						ctx.translate(Draw.width/2,Draw.height/2);
+						ctx.save();
+						ctx.translate(...Math.scaleVec2(pos.vec,scale));
+						Draw.circle(1/2,0,1,"white");
+						ctx.restore();
+
+						ctx.save();
+						const sv=startDir1.vec;
+						const ss=startPos1.vec;
+						let posB=new Space.Pos({vec:[
+							ss[0]*Math.cosh(time)+sv[0]*Math.sinh(time),
+							ss[1]*Math.cosh(time)+sv[1]*Math.sinh(time)
+						]});
+						ctx.translate(...Math.scaleVec2(posB.vec,scale));
+						Draw.circle(-1/2,0,1,"red");
+						ctx.restore();
+						ctx.restore();
+					}
+					function processStep(t=time){
+						let v=Math.vec2(mainPos.vec);
+						mainDir.set(mainDir.add({vec:Math.scaleVec2(mainPos.vec,delta)}));
+						mainPos.set(mainPos.add({vec:Math.scaleVec2(mainDir.vec,delta)}));
+						time+=delta;
+					};
+					let deleter;
+					while(true){
+						reset();
+						drawPos(new Space.Pos());
+						for(time=0;time<2;){
+							for(let i=0;i<300;i++){
+								for(let i=0;i<1;i++)processStep();
+								drawPos();
+							}
+							yield;
+						}
+						for(let i of waitTime(0)){
+							drawPos();
+							yield;
+						}
+					}
+					return;
+				};
+				let itter=mainFunc();
+				let done=false;
+				while(!done){
+					ctx.save()
+					done=itter.next().done;
+					ctx.restore();
+					yield;
+				}
+				thisDeleter();
+			},this)
 		}
 	};
 	entity.onload();
@@ -51,12 +141,9 @@ function gameBitsTester(){
 			}
 			ctx.restore();
 		}
-		()=>{
-
-		}
 	];
 	for(let i of drawScripts){
-		mainGame.layers.draw.set(i,i);
+		mainGame.layers.draw.add(i);
 	}
 	mainGame.start()
 };
@@ -65,7 +152,8 @@ const Space={
 	RelPos:class{},
 	Chunk:class{},
 	Entity:class{},
-};{
+};
+{//position and chunks
 	//pos has: {mat,vec, rel,obj};
 	//only moves rel to obj, ignors other chunks
 	class Pos{
@@ -104,7 +192,7 @@ const Space={
 				if(this.rel==pos.obj||(!pos.obj||!this.rel)){
 					ans.rel=pos.rel;
 				}
-				else return ans;
+				//else return ans;//ignore rule
 			}
 			if(pos.hasOwnProperty('mat')){
 				if(pos.hasOwnProperty('vec')){
@@ -217,5 +305,26 @@ const Space={
 		}
 		static chunkSymbol=Symbol("chunk");
 	};Space.Chunk=Chunk;
+}if(0){//HyperbolicSpace extends Space
+	class PosH extends Space.Pos{
+		constructor(){
+
+		}
+		static getPos(coords,velocity,hyperbolicness=1){
+			let len=Math.hypot(...velocity);
+			if(len==0)return coords;
+			let hyp=hyperbolicness*len;
+			return [
+				[
+					[Math.cosh(hyp)*coords[0]+Math.sinh(hyp)*velocity[0]/len],
+					[Math.cosh(hyp)*coords[1]+Math.sinh(hyp)*velocity[1]/len]
+				],
+				[
+					[Math.sinh(hyp)*coords[0]+Math.cosh(hyp)*velocity[0]/len],
+					[Math.sinh(hyp)*coords[1]+Math.cosh(hyp)*velocity[1]/len]
+				],
+			];
+		}
+	}
 }
 gameBitsTester();
