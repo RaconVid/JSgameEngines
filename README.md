@@ -1,6 +1,6 @@
 # JSgameEngines
 
-JSgames that use my JS gameEngine
+JavaScript games that use my JavaScript game engine
 
 ## Documentation
 
@@ -13,7 +13,7 @@ UpdateScript: contains function `obj.onUpdate()` and boolean `obj.isDeleting`
 ### Global constants
 
 (in pseudo c++ header, ):
-these are used in eco.js's scope.
+these are used in `eco.js`'s scope.
 ```c++
 Object Images;
 const class IOEngine;
@@ -40,7 +40,7 @@ class mainGame.UpdateScript(ArrowFunction UpdateLayer getLayer(),Generator bool 
 class mainGame.UpdateScript(ArrowFunction UpdateLayer getLayer(),function script);
 class mainGame.UpdateLayer;
 ```
-unneaded globals?
+unneeded globals?
 ```c++
 
 object Clone (Object obj);
