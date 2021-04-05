@@ -10,7 +10,7 @@ Clone=function(obj){
 		}
 		return(objClone);
 	}
-	if(obj instanceof Refference){//
+	if(obj instanceof Reference){//
 		for(var i in obj){
 			objClone[i]=obj[i];
 		}
@@ -46,7 +46,7 @@ CloneTo=function(data,ref){//Clone data to existing object (i.e. "ref")
 		}
 		return(ref);
 	}
-	if(data instanceof Refference){
+	if(data instanceof Reference){
 		for(var i in data){
 			ref[i]=data[i];
 		}
