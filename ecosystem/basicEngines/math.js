@@ -187,7 +187,7 @@
 			}
 			return ans;
 		}
-		//UNFINNISHED
+		//UNFINISHED
 		Math.inverseMatrix=function(matA){//A by B (matrix); boths lengths >0
 			if(matrixA.length==2&&matrixA[0].length==2){
 				return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]]];
@@ -293,7 +293,7 @@
 			}
 			return ans;
 		}
-		//UNFINNISHED
+		//UNFINISHED
 		Math.inverseMatrix=function(matA){//A by B (matrix); boths lengths >0
 			if(matrixA.length==2&&matrixA[0].length==2){
 				return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]]];
