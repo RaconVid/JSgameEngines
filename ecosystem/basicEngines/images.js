@@ -1,3 +1,4 @@
+"use strict";
 Images={
 	icon:"images/sublimetext.PNG",
 	//rock:"images/rock.PNG",

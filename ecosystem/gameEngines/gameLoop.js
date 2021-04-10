@@ -1,3 +1,4 @@
+"use strict";
 class MainGame{
 	constructor(){
 		this.construct_Classes();

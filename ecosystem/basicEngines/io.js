@@ -1,3 +1,4 @@
+"use strict";
 class IOEngine{
 	start(){
 		window.Draw=new this.Draw();

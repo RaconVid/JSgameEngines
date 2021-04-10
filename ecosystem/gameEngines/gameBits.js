@@ -1,4 +1,4 @@
-"use strict";
+"use strict";//can disable this "use strict"
 function gameBitsTester(){
 	window.mainGame=new MainGame();
 	let mg=mainGame;

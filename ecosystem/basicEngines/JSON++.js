@@ -1,3 +1,4 @@
+"use strict";
 JSON.list=function(object){
 	let objs=[];//list of original objects
 	let refs=[];//objs->index pointers (semi compiled)

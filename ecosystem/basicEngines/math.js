@@ -1,3 +1,4 @@
+"use strict";
 {//Math
 	{//getAngle
 		Math.getAngle=function(coords,axisA,axisB){

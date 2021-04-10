@@ -1,3 +1,4 @@
+"use strict";
 Clone=function(obj){
 	var objClone;
 	if(obj === null || typeof obj !== "object"){
