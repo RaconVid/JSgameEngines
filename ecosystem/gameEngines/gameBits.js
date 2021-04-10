@@ -5,7 +5,7 @@
 			constructor(){window.numN=1;//to delete: testing
 				this.coords=[0,0];
 				//this.layerRef=null; now use this.pos.layer
-				//this.viewList=[];
+				this.viewList=[];
 				this.pos=new Space.Pos({layer:null});
 				this.n=0;
 				this.type={
@@ -85,7 +85,7 @@
 						if(obj.obj.type.chunk)
 						if(obj.obj.list instanceof Array)
 						if(obj.obj.list.length>0){
-							let newPos=Space.Pos.minus(obj1.pos,this.getCamPos());
+							let newPos=Space.Pos.sub(obj1.pos,this.getCamPos());
 							newPos.vec=Math.addVec2(newPos.vec,obj1.obj.coords);
 							toDo.push(()=>this.viewSearchV1_1(obj.obj.list,filter,list,newPos,n+1,portalFilter,portalList,toDo));//obj1.pos
 						}
@@ -149,7 +149,7 @@
 						if(obj.obj.type.chunk)
 						if(obj.obj.list instanceof Array)
 						if(obj.obj.list.length>0){
-							let newPos=Space.Pos.minus(obj1.pos,this.getCamPos());
+							let newPos=Space.Pos.sub(obj1.pos,this.getCamPos());
 							newPos.vec=Math.addVec2(newPos.vec,obj1.obj.coords);
 							this.viewSearch(obj.obj.list,filter,list,newPos,n+1,portalFilter,portalList);//obj1.pos
 						}

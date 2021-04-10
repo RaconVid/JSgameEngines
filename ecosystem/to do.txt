@@ -1,4 +1,7 @@
 to do:
+everywhere: update UpdateScripts to work with new UpdateLayers
+	replace stuff like
+
 eco.js: ~line 286 - refind object
 Math.js: Vector/Matrix classes
 eco.js - resetting system:{

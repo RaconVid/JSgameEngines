@@ -1,7 +1,7 @@
 const showChunksDebug_UI=true;//DEBUG_UI
 class World{
 	constructor(){
-		this.chunkSize=400;//diamiter
+		this.chunkSize=400 *1000;//diamiter best size = 400;
 		let mapScale=20;
 		let mapSize=[mapScale,mapScale];
 		let mapChunks=[];
@@ -279,7 +279,7 @@ class World{
 				relPos1=new Space.RelPos(i,pos);
 				yielded=yield relPos1;
 				if(yielded==undefined||yielded){
-					if(relPos1.obj.type.chunk)yield*this[itemSearch](radius,relPos1,objList);
+					if(relPos1.obj.type.chunk)yield*this[itemSearch](radius,relPos1,relPos1.obj,objList);
 				}
 				objList.pop();
 			}

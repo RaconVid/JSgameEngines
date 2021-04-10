@@ -1,4 +1,3 @@
-//version 2
 class MainGame{
 	constructor(){
 		this.construct_Classes();
@@ -18,7 +17,7 @@ class MainGame{
 	}
 	construct_Classes(){
 		//Version 0.1.0
-		this.UpdateScriptV1_0_0=class{
+		this.UpdateScriptV1_0=class{
 			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
 				this.isDeleting=false;
 				this.sprite=sprite;
@@ -36,44 +35,6 @@ class MainGame{
 				}
 				else if(layer_i==undefined){
 					layer.list.push(this);
-				}
-
-			}
-			detachLayer(){//detach from Layer
-				this.isDeleting=true;//detaching is done by the UpdateLayer
-			}
-			attachScripts(){
-				this.attachLayer();
-			}
-			detachScripts(){
-				this.detachLayer();
-			}
-			isThisDeleting(layer,layer_i){
-				return this.isDeleting;//||this.layer!=layer;
-			}
-			onUpdate(layer,layer_i){
-				this.script(layer,layer_i);
-			}
-		};
-		//Version 0.1.0.1 - compatible with UpdateLayerV0.2.0
-		this.UpdateScriptV1_0=class{
-			constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
-				this.isDeleting=false;
-				this.sprite=sprite;
-				this.layer=layer;
-				if(layer){
-					this.attachLayer(layer,layer_i);
-				}
-				this.script=script;
-				//add datachable
-				if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
-			}
-			attachLayer(layer=this.layer,layer_i){//attach to layer
-				if(typeof layer_i=="number"&&layer_i!=NaN){
-					layer[layer_i]=this;
-				}
-				else if(layer_i==undefined){
-					layer.push(this);
 				}
 
 			}
@@ -154,7 +115,7 @@ class MainGame{
 				}
 			}
 		}
-		this.UpdateLayerV1_0=class{
+		this.UpdateLayer=class{
 			constructor(onUpdate=()=>{this.layerScript();},list=[]){
 				this.onUpdate=onUpdate;
 				this.list=list;
@@ -178,82 +139,6 @@ class MainGame{
 				}
 			};
 		};
-		//Version 0.2.0
-		this.UpdateLayer=class UpdateLayer extends Array{
-			get list(){return this;}//backwardsConpatible
-			set list(val){this.splice(0,this.length);Object.assign(this,val);}//backwardsConpatible
-
-			constructor(length=10){
-				if(arguments.length<=1&&typeof length=='number'){
-					super(length);
-					for(let i=0;i<length;i++){
-						this[i]=new this.constructor(0);
-					}
-				}
-				//case function for backwards compatible with V1_0
-				else if(arguments.length==1&&typeof length=='function'){
-					super();
-					let updateFunction=length;
-					this.onUpdate=updateFunction;
-				}
-				else {
-					super(...arguments);
-				}
-			}
-			//events
-				onUpdate(){
-					this.layerScript();
-				}
-				onload(){
-
-				}
-				unload(){
-
-				}
-				onDelete(){
-
-				}
-			//item handling
-				add(item){
-					this.push(item);
-					return ()=>this.delete(item);
-				}
-				set(item,newItem){
-					let index=this.indexOf(item);
-					if(index!=-1){
-						this[index]=newItem;
-					}
-					return ()=>this.delete(newItem);
-				}
-				delete(item){
-					let index=this.indexOf(item);
-					if(index!=-1){
-						this.splice(index,1);
-						return ()=>this.add(item);
-					}
-					else return false;
-				}
-				clear(){
-					this.splice(0,this.length);
-				}
-			*iterator(){
-
-			}
-			layerScript(){let j=0;
-				for(let i of this){
-					if(typeof i=='function')i();
-					else if(i.next)i.next();
-					else if(i.onUpdate){
-						i.onUpdate(this,j);
-						if(i.isDeleting)this.delete(i);j--;//backwardsConpatible
-					}
-					j++;//backwardsConpatible
-				}
-			}
-			UpdateScript(scriptFunc){
-				this(scriptFunc);
-			}
-		}
 		this.RefLinker=class{
 			constructor(){
 				this.a=null;
@@ -266,30 +151,6 @@ class MainGame{
 
 			}
 		};
-
-		//V3 gameEngine
-		if(false)
-			this.UpdateScript=class{
-				deleter=()=>false;
-				constructor(eventGetter,scriptGetter){
-					//new US(l=>l.draw[4],function*(deleter){...deleter()}))
-					this.getEvent=eventGetter;
-					this.getScript=scriptGetter;
-					this.deleter=this.getEvent(mainGame.layers).add(this.getScript(()=>this.onDelete(),))
-				}
-				onLoad(){
-					eventGetter().add(this.script)
-				}
-				onUnload(){
-					
-				}
-				onDelete(){
-					this.deleter();
-				}
-				[Symbol.iterator](){
-					return {next(){},return(){},throw(){}};
-				}
-			}
 	}
 	construct_Consts(){
 		this.time=new Time();

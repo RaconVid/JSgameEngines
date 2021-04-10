@@ -56,16 +56,20 @@ function setDebug(){if(DEBUG_UI)if(1){
 //I was able to get the same error executing the following code in Chrome's console
 
 (function(){//load main game
+		function*waitTime(seconds){
+			let t=seconds;
+			while((t-=mainGame.time.delta)>0){yield seconds-t;}
+		};
 	{
 		window.mainGame=new MainGame();
 		window. world=new World();
 		{//set up maingame UpdateLayers
 			mainGame.layers={
-				update:new mainGame.UpdateLayer(),
-				physics:new mainGame.UpdateLayer(),
-				moveMent:new mainGame.UpdateLayer(),
-				detectors:new mainGame.UpdateLayer(),
-				draw:new mainGame.UpdateLayer(),
+				update:new mainGame.UpdateLayer(20),
+				physics:new mainGame.UpdateLayer(20),
+				moveMent:new mainGame.UpdateLayer(20),
+				detectors:new mainGame.UpdateLayer(20),
+				draw:new mainGame.UpdateLayer(20),
 				mainDraw:mainGame.mainLayers.draw,
 			};
 			for (let i = 0; i < 20; i++) {
@@ -163,7 +167,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 						yield newRelPos;
 					}
 				}
-				function* waitTime(seconds){
+				waitTime=function*(seconds){
 					let t=seconds;
 					while((t-=mainGame.time.delta)>0){yield t;}
 				};
@@ -182,7 +186,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 				}
 			],
 			Draw:{scripts:[]},
-			type:{scissors:true,rock:true},
+			type:{rock:true},
 		};
 		player1.Draw.scripts=[
 			costume(function drawing(){
@@ -207,13 +211,13 @@ function setDebug(){if(DEBUG_UI)if(1){
 			}.bind(player1)()),
 			trigger_killCreature:new mainGame.UpdateScript(l=>l.update.list[4],function*(){
 				while(true){
-					if(Inputs.getKey("k").down){
+					if(Inputs.getKey("k").onDown){
 						for(let i of this.viewSearch()){
 							if(i.obj==this)continue;
 							if(i.obj.type.rock){
 								i.obj.energy=15;
 							}
-						}
+						}Inputs.getKey("k").onDown=false;
 					}
 					yield;
 				}
@@ -226,9 +230,9 @@ function setDebug(){if(DEBUG_UI)if(1){
 	}
 	newPlayer1();
 	{//Rock
-		function rock_Paper_Scissors(){
+		function rock_Paper_Scissors(typeNumber=0){
 			let newObj={
-				coords:[0,0],
+				coords:[Math.random()*10,Math.random()*10],
 				velocity:[0,0],
 				mass:10,
 				size:10,
@@ -239,11 +243,17 @@ function setDebug(){if(DEBUG_UI)if(1){
 				],
 				type:{rock:true},
 				keywords:{metalic1:1},
+				Draw:{},
 				...{
 					energy:10,
+					currentScript:null,
 				},
-				Draw:{},
 			};
+			let typeName;//current type name
+			{
+				let typesNames=["rock","paper","scissors"];
+				typeName=typesNames[typeNumber];
+			}
 			delete newObj.type.shape;
 			let targetFunc=function*targetFunc(targetObj){
 				let startTime=mainGame.time.start;
@@ -301,12 +311,24 @@ function setDebug(){if(DEBUG_UI)if(1){
 				}
 				return;
 			}.bind(newObj);
+			newObj.scriptGenerators={
+			}
 			newObj.scripts={
+				start:new mainGame.Script(layers=>layers.update.list[5],function*(){
+
+				}.bind(newObj)()),
 				script1:new mainGame.Script(layers=>layers.update.list[5],function*(){
+					let itter;
 					while(true){
-						yield*this.subScripts.rockLoop();
-						delete this.type.rock,this.keywords.metalic1;
-						yield*this.subScripts.paperLoop();
+						if(typeName=="rock"){
+							yield*this.subScripts.rockLoop();
+							delete this.type.rock,this.keywords.metalic1;
+						}else if(typeName=="paper"){
+							yield*this.subScripts.paperLoop();
+
+						}else if(typeName=="scissors"){
+							yield*this.subScripts.scissorsLoop();
+						}
 						yield;
 					}
 				}.bind(newObj)()),
@@ -321,7 +343,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 						hunting:while(true){
 							this.type.rock=true;
 							let minObj=null;let minDist=Infinity;
-							view=this.viewSearch();
+							let view=this.viewSearch();
 							for(let relPos of view){
 								if(!relPos.obj.type)continue;
 								//if(!relPos.obj.keywords)continue;
@@ -381,21 +403,27 @@ function setDebug(){if(DEBUG_UI)if(1){
 							}
 							yield;
 						}
-						while(this.energy>10){
-							if(Math.random()<=1-Math.pow(1-0.5,mainGame.time.delta)){
+						while(this.energy>13){
+							if(Math.random()<=1-Math.pow(1-0.6,mainGame.time.delta)){//60% per second of reproducing
 								let newObj=rock_Paper_Scissors();
-								newObj.coords=Math.addVec2(this.coords,[40,40]);
+								newObj.coords=Math.addVec2(this.coords,[-5+Math.random()*10,-5+Math.random()*10]);
 								newObj.refEntity.pos=new Space.Pos(this.refEntity.pos);
+								this.energy--;
 							}
 							yield;
 						}
 					}.bind(newObj),
 					paperLoop:function*(){
-						view=this.viewSearch();
+						this.Draw.scripts[0]=[()=>{
+							let s=1.05;
+							ctx.save();
+							ctx.transform(1,0,0.4,1,0,0);
+							Draw.square(0,0,this.size,"#ABCDEF70");
+							ctx.restore();
+						},l=>l.list[10]];
 						this.type.paper=true;
-						let timer=3;
-						let speed=100;
-						let moveItter=function*(){
+						let view;
+						let moveGenerator=function*(){
 							let direction=Math.random();
 							const waitTime=function*(seconds){
 								let t=seconds;
@@ -404,7 +432,7 @@ function setDebug(){if(DEBUG_UI)if(1){
 							while(true){
 								const distPerMove=50;
 								const timePerMove=1;
-								const turnRange=0.01;
+								const turnRange=0.5;
 								direction=(direction+(Math.random()-0.5)*turnRange)%1;
 								let moveBy=new Math.Vector2(Math.rotate([distPerMove*(1-0.8*(Math.random()**2)),0],direction*Math.PI*2,0,1));
 								let t=0;//animation time (0 to 1)
@@ -417,44 +445,154 @@ function setDebug(){if(DEBUG_UI)if(1){
 									yield t;
 								}
 								const lerpToVal=new Math.Vector2([0,0]);
-								for(let i of waitTime(1)){
+								for(let i of waitTime(0.3)){
 									let moveDist=Math.len2(this.velocity,lerpToVal);
-									let m=Math.clamp(0,4*mainGame.time.delta,moveDist)/moveDist;
+									let m=Math.clamp(0,40*mainGame.time.delta,moveDist)/moveDist;
 									if(isNaN(m))m=1;
 									this.velocity=Math.lerp2(this.velocity,lerpToVal,m);
 									yield;
 								}
-								yield*waitTime(2);
+								yield*waitTime(0.2);
 								yield;
 							}
-						}.bind(this)();
-						while((timer-=Math.random()*mainGame.time.delta*2)>0){
-							yield moveItter.next();
-						}
-						moveItter.return();
-						typesFound.paper=[];
-						let minDist=Infinity,minObj=null;
-						for(let relPos of view){
-							if(!relPos.obj.type)continue;
-							//if(!relPos.obj.keywords)continue;
-							let dist=Math.len2(relPos.coords,this.coords);
-							if(dist<minDist&&dist<100){
-								let type;
-								if(type=relPos.obj.type)
-								if(type.rock)
-								//if(type=relPos.obj.keywords)
-								if(true){
-									minObj=relPos;typesFound.paper.push(relPos);
-									minDist=dist;
+						}.bind(this);
+						let moveItter=moveGenerator();
+						while(true){
+							let timer=4.2;
+							let speed=100;
+							while((timer-=Math.random()*mainGame.time.delta*2)>0){
+								yield moveItter.next();
+							}
+							//moveItter.return();
+							typesFound.paper=[];
+							let minDist=Infinity,minObj=null;
+							view=this.viewSearch();
+							for(let relPos of view){
+								if(!relPos.obj.type)continue;
+								//if(!relPos.obj.keywords)continue;
+								let dist=Math.len2(relPos.coords,this.coords);
+								if(dist<minDist&&dist<40){
+									let type;
+									if(type=relPos.obj.type)
+									if(type.rock)
+									//if(type=relPos.obj.keywords)
+									if(true){
+										minObj=relPos;typesFound.paper.push(relPos);
+										minDist=dist;
+									}
+								}
+								if(minObj&&Math.random()<0.2+0.2*minDist/100){
+									//break;
 								}
 							}
-							if(minObj&&Math.random()<0.2+0.2*minDist/100){
-								break;
+							if(minObj){
+								{
+									let script=costume(12,()=>{Draw.square(0,0,10,"blue");});
+									let layer=minObj.obj.Draw.scripts;
+									layer.push(script);
+									let deleter1=()=>{
+										let index=layer.indexOf(script);
+										if(index!=-1)layer.splice(index,1);
+										minObj.obj.delete();
+									};
+									let deleter=mainGame.layers.update[5].add(function*(){
+										yield* waitTime(2);
+										deleter1();
+										deleter();
+									}());
+								}
 							}
+							yield;
 						}
-						if(minObj){
-							//minObj.obj.delete();
-							this.Draw.scripts.push(costume(12,()=>{Draw.square(0,0,10,"blue");}))
+					}.bind(newObj),
+					scissorsLoop:function*(){
+						this.Draw.scripts[0]=[()=>{
+							let s=1.05;
+							Draw.line(-this.size*s,-this.size*s,this.size*s,this.size*s,this.size/3,"green");
+							Draw.circle(0,0,this.size,"#220055");
+						},l=>l.list[10]];
+						let moveGenerator=function*(){
+							let direction=Math.random();
+							const waitTime=function*(seconds){
+								let t=seconds;
+								while((t-=mainGame.time.delta)>0){yield t;}
+							};
+							while(true){
+								const distPerMove=50;
+								const timePerMove=1;
+								const turnRange=0.5;
+								direction=(direction+(Math.random()-0.5)*turnRange)%1;
+								let moveBy=new Math.Vector2(Math.rotate([distPerMove*(1-0.8*(Math.random()**2)),0],direction*Math.PI*2,0,1));
+								let t=0;//animation time (0 to 1)
+								this.velocity=[0,0];
+								while(t<1){
+									let change=6*t*(1-t);
+									this.velocity=Math.lerp2(this.velocity,Math.scaleVec2(moveBy,change),Math.clamp(0,1,mainGame.time.delta/0.2));
+									//this.goto(Math.addVec2(this.coords,));
+									t+=mainGame.time.delta/timePerMove;
+									yield t;
+								}
+								const lerpToVal=new Math.Vector2([0,0]);
+								for(let i of waitTime(0.3)){
+									let moveDist=Math.len2(this.velocity,lerpToVal);
+									let m=Math.clamp(0,40*mainGame.time.delta,moveDist)/moveDist;
+									if(isNaN(m))m=1;
+									this.velocity=Math.lerp2(this.velocity,lerpToVal,m);
+									yield;
+								}
+								yield*waitTime(0.2);
+								yield;
+							}
+						}.bind(this);
+						let moveItter=moveGenerator();
+						while(true){
+							for(let i of waitTime(1+Math.random()*0.1)){
+								moveItter.next();
+								yield;
+							}
+							let minObj=null,minDist=Infinity;
+							let yieldCounter=0;//
+							for(let i of this.viewSearch()){
+								if(yieldCounter=(yieldCounter+1)%5)yield*waitTime(0.01);
+								let dist=Math.len2(i.coords,this.coords);
+								if(dist<400){
+									if(i.obj.type.paper){
+										if(dist<minObj){
+											minObj=i;
+											minDist=dist;
+										}
+									}
+								}
+							}
+							//pounce onto paper
+							this.velocity=[0,0]
+							yield*waitTime(2.6);
+							if(minObj){
+								let targetPos={rel:this.layer,vec:i.coords};//new Space.Pos(minObj) in V3 engine
+								const duration=0.24;//timeDuration of the pouncing attack
+								let moveVelocity=Math.scaleVec2(Math.minusVec2(targetPos.vec,this.coords),1/duration);
+								let t=0;
+								while(t=waitTime(duration)/duration){//t=0->duration
+									let dt=maingame.time.delta;
+									let force=Math.dif2(moveVelocity,this.velocity);
+									//force=Math.scaleVec2(force,dt*Math.clamp(0,0.95/dt,8*Math.len2(force)));
+									this.velocity=Math.addVec2(this.velocity,force);
+									yield;
+								}
+								for(let i of this.viewSearch()){
+									if(yieldCounter=(yieldCounter+1)%5)yield*waitTime(0.01);
+									let dist=Math.len2(i.coords,this.coords);
+									if(i.obj==this)continue;
+									if(dist<40){
+										if(i.obj.type.paper){
+											if(dist<minObj&&dist<i.obj.size+this.size+10){loga()
+												i.obj.delete();
+											}
+										}
+									}
+								}
+							}
+							yield;
 						}
 					}.bind(newObj),
 				}
@@ -470,7 +608,11 @@ function setDebug(){if(DEBUG_UI)if(1){
 			return newObj;
 		}
 		window.rock_Paper_Scissors=rock_Paper_Scissors;
-		rock_Paper_Scissors();
+		rock_Paper_Scissors(2);
+		rock_Paper_Scissors(0);
+		rock_Paper_Scissors(0);
+		rock_Paper_Scissors(0);
+		rock_Paper_Scissors(0);
 	}
 	{
 		new Sprite({
