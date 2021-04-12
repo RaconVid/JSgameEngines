@@ -1,5 +1,6 @@
 "use strict";
 {//Math
+	Math.TAU=Math.PI*2;
 	{//getAngle
 		Math.getAngle=function(coords,axisA,axisB){
 			/*while(coords.length-Math.max(axisA,axisB)>0){

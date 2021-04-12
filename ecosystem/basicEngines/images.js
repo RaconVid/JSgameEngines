@@ -1,5 +1,5 @@
 "use strict";
-Images={
+let Images={
 	icon:"images/sublimetext.PNG",
 	//rock:"images/rock.PNG",
 }

@@ -1,151 +1,96 @@
-"use strict";//can disable this "use strict"
+//"use strict";//can disable this "use strict"
 function gameBitsTester(){
-	window.mainGame=new MainGame();
-	let mg=mainGame;
-	let entity={
-		subEnt:{colour:"green"},
-		colour:"red",
-		pos1:new Space.Pos,
-		pos2:new Space.Pos,
-		onload(){
-			const addScript=function(layer=l=>l.update.get(4),funcGen,entity={}){
-				let layerSet=layer(mainGame.layers);
-				let iter;
-				let entsymbol=Symbol([layer,funcGen.name]);
-				let deleter=function(){
-					//iter.return();
-					delete entity[entsymbol];
-					return layerSet.delete(iter);
-				};
-				iter=funcGen(deleter,layerSet,funcGen);
-				layerSet.push(iter);
-				entity[entsymbol]=iter;
-				return deleter;
-			}
-			let setPos=()=>{
-				const tau=Math.PI*2;
-				let t=mainGame.time.start/3;
-				let vec=(new Math.Vector2(Inputs.mouse.vec2)).sub([Draw.width/2,Draw.height/2]);
-				vec=Math.scaleVec2(vec,1);
-				this.pos1.set((new Space.Pos({obj:this.subEnt,mat:[[1,1],[0,1]],vec:[Math.cos(t*tau)*40,Math.sin(t*tau)*40]})));
-				this.pos2.set(//this.pos1.sub()
-					(new Space.Pos({rel:this.subEnt,obj:this,mat:[[1,0],[0,1]],vec:vec}))
-					.add(this.pos1)
-					//.set({rel:null,obj:this})
-				);
-			}
-			setPos();
-			this.scripts=[
-				setPos
-			];
-			{
-				let reff=new WeakRef(setPos);
-				mainGame.layers.draw.add(()=>{reff.deref()()});
-				entity[Symbol("draw square script")]=reff;
-			}
-			addScript(l=>l.draw[4],function*(thisDeleter,thisLayer,thisGenerator){
-				let mainFunc=function*(){
-					const tau=Math.PI*2;
-					const delta=1/1000;
-					function*waitTime(t){
-						while((t-=mainGame.time.delta)>0)yield t;
-					};
-					function reset(){
-						mainDir=startDir1.get();//main direction
-						mainPos=startPos1.get();
-						time=0;
+	with(Math){with(Space){
+		let mainGame=new MainGame();
+		window.mainGame=mainGame;
+		//mainGame.layers.draw[3].add(()=>{ctx.fillStyle="white";ctx.fillRect(-Draw.width,-Draw.height,Draw.width*3,Draw.height*3);});
+		mainGame.layers.update[4].add(()=>Object.assign(nullPoint.vec,Inputs.mouse.vec2));
+		let pointEnt=class extends Space.RelPos{
+			constructor(pos,rel_obj){
+				super(pos);
+				if(rel_obj==undefined)rel_obj={obj:this.obj};
+				this.rel_obj=rel_obj;
+				mainGame.layers.update[4].add(()=>{});
+				mainGame.layers.draw[5].add(()=>{
+					ctx.save();
+					ctx.lineWidth=1;
+					ctx.strokeStyle="#C0C0C0";
+					ctx.beginPath();
+					let relVector=new RelPos(this.rel).find({obj:this}).vec;//.sub(this).vec;
+					let vector=Math.dif2(this.find({obj:this.obj}).vec,relVector);
+					ctx.translate(...relVector);
+					ctx.moveTo(0,0);
+					ctx.translate(...vector);
+					ctx.lineTo(0,0);
+					if(len2(vector)!=0){
+						let ang=TAU*(1/10);
+						let scale=-10/(1+len2(vector));
+						ctx.translate(...Math.scaleVec2(vector,-0.5-scale/2));
+						ctx.moveTo(0,0);
+						ctx.lineTo(
+							...scaleVec2(
+									rotate(vector,ang,0,1),
+									scale
+							)
+						);
+						ctx.moveTo(0,0);
+						ctx.lineTo(
+							...scaleVec2(
+									rotate(vector,-ang,0,1),
+								scale
+							)
+						);
 					}
-					const startDir1=new Space.Pos({vec:[-3,-4]});
-					const startPos1=new Space.Pos({
-						vec:[1,2],
-						mat:[[1,0],[0,1]]
-					});
-					let mainDir;
-					let mainPos;
-					let time;
-					reset();
-					function drawPos(pos=mainPos){const scale=20;
-						ctx.save();
-						ctx.translate(Draw.width/2,Draw.height/2);
-						ctx.save();
-						ctx.translate(...Math.scaleVec2(pos.vec,scale));
-						Draw.circle(1/2,0,1,"white");
-						ctx.restore();
-
-						ctx.save();
-						const sv=startDir1.vec;
-						const ss=startPos1.vec;
-						let posB=new Space.Pos({vec:[
-							ss[0]*Math.cosh(time)+sv[0]*Math.sinh(time),
-							ss[1]*Math.cosh(time)+sv[1]*Math.sinh(time)
-						]});
-						ctx.translate(...Math.scaleVec2(posB.vec,scale));
-						Draw.circle(-1/2,0,1,"red");
-						ctx.restore();
-						ctx.restore();
-					}
-					function processStep(t=time){
-						let v=Math.vec2(mainPos.vec);
-						mainDir.set(mainDir.add({vec:Math.scaleVec2(mainPos.vec,delta)}));
-						mainPos.set(mainPos.add({vec:Math.scaleVec2(mainDir.vec,delta)}));
-						time+=delta;
-					};
-					let deleter;
-					while(true){
-						reset();
-						drawPos(new Space.Pos());
-						for(time=0;time<2;){
-							for(let i=0;i<300;i++){
-								for(let i=0;i<1;i++)processStep();
-								drawPos();
-							}
-							yield;
-						}
-						for(let i of waitTime(0)){
-							drawPos();
-							yield;
-						}
-					}
-					return;
-				};
-				let itter=mainFunc();
-				let done=false;
-				while(!done){
-					ctx.save()
-					done=itter.next().done;
+					ctx.stroke();
 					ctx.restore();
-					yield;
-				}
-				thisDeleter();
-			},this)
-		}
-	};
-	entity.onload();
-	let pos,ent;
-	let chunk1=new Space.Chunk();
-	chunk1.add(entity.pos1);
-	chunk1.add(entity.pos2);
-	function drawPos(pos){
-		ctx.translate(...pos.vec);
-		ctx.transform(...pos.mat[0],...pos.mat[1],0,0);
-	}
-	let drawScripts=[
-		()=>{
-			ctx.save();
-			ctx.translate(Draw.width/2,Draw.height/2);
-			for(let [entity,pos] of chunk1.viewSearch()){
-				ctx.save();
-				drawPos(pos);
-				Draw.square(0,0,10,entity.colour?entity.colour:"#005555");
-				ctx.restore();
+				});
+				mainGame.layers.draw[4].add(()=>{
+					ctx.save();
+					Draw.transform(this.find({obj:this.obj}));
+					let size=3;
+					Draw.square(size,-size,size,"cyan");
+					ctx.font="8px sans-serif";
+					ctx.fillStyle="#666666";
+					ctx.fillText("G",0,0);
+					ctx.restore();
+				});
 			}
-			ctx.restore();
 		}
-	];
-	for(let i of drawScripts){
-		mainGame.layers.draw.add(i);
-	}
-	mainGame.start()
+		let nullPoint=new pointEnt();
+		nullPoint.set({vec:[Draw.width/2,Draw.height/2]});
+		nullPoint.name="nullPoint";
+		let points=[nullPoint]
+		for(let i=0;i<0;i++){
+			points.push(new pointEnt({
+				rel:points[(random()*points.length)|0],
+				vec:[(random()*2-1)*40,(random()*2-1)*40],
+				mat:[[1,0],[0,1]],
+			}));
+		}
+		{
+			let relPosA=new pointEnt({
+				rel:nullPoint,
+				vec:[40,0],
+				mat:[[1,0],[1,1]],
+			});
+			let relPosB=new pointEnt({
+				rel:nullPoint,
+				vec:[0,60],
+				mat:[[1,0],[0,1]],
+			});//OA + OB -0A
+			let relPosC=new pointEnt({
+				rel:relPosA,
+				vec:[0,40],
+				mat:[[1,0],[0,1]],
+			});
+			let pos_A_to_B=new Pos({rel:relPosA})
+				.sub(relPosA)
+				.add(relPosB)
+				//.set({rel:relPosA})
+			let RelPos_A_to_B=new pointEnt().set(pos_A_to_B);
+		}
+	}}
+	mainGame.start();
 };
 const Space={
 	Pos:class{add;sub;},
@@ -154,19 +99,29 @@ const Space={
 	Entity:class{},
 };
 {//position and chunks
-	//pos has: {mat,vec, rel,obj};
-	//only moves rel to obj, ignors other chunks
+	//Space.Pos() Notes:
+		//pos has: {mat,vec,rel,obj};
+		//has: add,sub,get,set;
+		//AB + CA = BC
+		//objectVectors:{
+			//AB + CA = BC
+			//(ignored rule) only moves rel to obj, ignors other chunks
+			//rel->obj : an object in the Set() "rel" that points to the Object() "obj"
+		//}
+	//-----
 	class Pos{
 		static nullObject=new Set();
 		constructor(pos={}){
 			//Object.assign(this,pos);return;
 			if(pos.hasOwnProperty('obj'))this.obj=pos.obj;
 			if(pos.hasOwnProperty('rel'))this.rel=pos.rel;
-			if(pos.hasOwnProperty('vec'))this.vec=pos.vec;
+			if(pos.hasOwnProperty('vec'))this.vec=pos.vec;//new Math.Vector2(pos.vec);
 			if(pos.hasOwnProperty('mat'))this.mat=pos.mat;
 		}
+		getR(pos=new Pos()){return pos.get(this);}
+		setR(pos=new Pos()){return pos.set(this);}
 		get(){//clone this
-			return new Pos(this);
+			return this;
 		}
 		set(pos=Pos.prototype){//assign this
 			//Object.assign(this,pos);
@@ -176,7 +131,7 @@ const Space={
 			if(pos.hasOwnProperty('mat'))this.mat=pos.mat;
 			return this;
 		}
-		//addR == reversed A.add(B)->B.add(A)
+		//addR == reversed add; A.addR(B) == B.add(A)
 		addR(pos){let ans=new Space.Pos(pos);return ans.add(this,ans);}
 		subR(pos){let ans=new Space.Pos(pos);return ans.sub(this);}
 		add(pos,ans=new Pos(this)){
@@ -188,9 +143,9 @@ const Space={
 				return ans;
 			}
 			//if(!(pos instanceof Pos))pos=new Pos(pos);
-			if(pos.obj||pos.rel){//AB + CA = BC
-				if(this.rel==pos.obj||(!pos.obj||!this.rel)){
-					ans.rel=pos.rel;
+			if(pos.obj||ans.obj){//AB + BC = AC
+				if(ans.obj==pos.rel){//||(!pos.obj||!this.rel)
+					ans.obj=pos.obj;//ans.rel=pos.rel;
 				}
 				//else return ans;//ignore rule
 			}
@@ -241,7 +196,6 @@ const Space={
 				rel:this.rel,
 			});
 		}
-		toString(){return "Pos{ obj:("+this.rel+" -> "+this.obj+") * mat:["+this.mat+"] + vec:["+this.vec+"] }"}
 		sub(pos){
 			if(pos==undefined){//inverse
 				if(!this.hasOwnProperty('mat'))return new Pos({
@@ -269,6 +223,9 @@ const Space={
 				return this.add(pos.sub())
 			}
 		}
+		toString(){
+			return "Pos{ obj:("+this.rel+" -> "+this.obj+") * mat:["+this.mat+"] + vec:["+this.vec+"] }"
+		}
 	};Space.Pos=Pos;
 	//note (void 0) == undefined it just is
 	Pos.prototype.vec=[0,0];//new Math.Vector2();
@@ -281,12 +238,28 @@ const Space={
 			super(pos);//rel and obj are Pos or RelPos
 			this.pos=pos;
 		}
-		get(){
-			return this.add(this.rel);
+		find(rel_obj,ans=new Pos(this),n=0){//Pos rel_obj;
+			if(n>10000)throw "RelPos error: possible infinite loop of Objects";
+			if(rel_obj===undefined)rel_obj=new Pos;
+
+			if(this.rel&&ans.rel!=rel_obj.rel&&ans.rel==this.rel){
+				ans.add(this.rel).set({rel:this.rel.rel}).setR(ans);
+				if(rel_obj.rel!=ans.rel){
+					this.rel.find(rel_obj,ans,n+1);
+				}
+			}
+			if(this.obj&&ans.obj!=rel_obj.obj&&ans.obj==this.obj){
+				ans.addR(this.obj).set({obj:this.obj.obj}).setR(ans);
+				if(rel_obj.obj!=ans.obj){
+					this.obj.find(rel_obj,ans,n+1);
+				}
+			}
+			return ans;
+			//return this.rel.add(this).add(this.obj);
 		}
-		set(pos){
-			return this.obj.set(pos.sub(this.rel));
-		}
+		//set(pos){
+		//	return this.obj.set(pos.sub(this.rel));
+		//}
 	};Space.RelPos=RelPos;
 	class Chunk extends Set{//array of Space.Pos({rel:chunk,obj:entity});
 		chunkSymbol=this.constructor.chunkSymbol;

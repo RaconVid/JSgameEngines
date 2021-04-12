@@ -1,5 +1,9 @@
 "use strict";
-Clone=function(obj){
+//Clone,CloneTo are obolete
+//Clone(obj) == {...obj}
+//CloneTo(data,ref) == Object.assign(ref,data)
+//these Clone functions may still be faster than javascripts own ones
+function Clone(obj){
 	var objClone;
 	if(obj === null || typeof obj !== "object"){
 		return(obj);
@@ -28,7 +32,7 @@ Clone=function(obj){
 }
 //Clone data to ref;
 //Clone data from ref;
-CloneTo=function(data,ref){//Clone data to existing object (i.e. "ref")
+function CloneTo(data,ref){//Clone data to existing object (i.e. "ref")
 	//objA = obj
 	//objb = objClone
 	if(data === null || typeof data !== "object"){
@@ -111,7 +115,7 @@ class Reference{
 		}
 	}
 }
-loga=function(log="",alertText=""){
+function loga(log="",alertText=""){
 	console.error(log);alert(alertText);
 }
 //InjectClass()
