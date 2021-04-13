@@ -13,7 +13,7 @@ function gameBitsTester(){
 				mainGame.layers.update[4].add(()=>{});
 				mainGame.layers.draw[5].add(()=>{
 					ctx.save();
-					ctx.lineWidth=1;
+					ctx.lineWidth=2;
 					ctx.strokeStyle="#C0C0C0";
 					ctx.beginPath();
 					let relVector=new RelPos(this.rel).find({obj:this}).vec;//.sub(this).vec;
@@ -24,7 +24,7 @@ function gameBitsTester(){
 					ctx.lineTo(0,0);
 					if(len2(vector)!=0){
 						let ang=TAU*(1/10);
-						let scale=-10/(1+len2(vector));
+						let scale=-15/(1+len2(vector));
 						ctx.translate(...Math.scaleVec2(vector,-0.5-scale/2));
 						ctx.moveTo(0,0);
 						ctx.lineTo(
@@ -47,9 +47,9 @@ function gameBitsTester(){
 				mainGame.layers.draw[4].add(()=>{
 					ctx.save();
 					Draw.transform(this.find({obj:this.obj}));
-					let size=3;
+					let size=6;
 					Draw.square(size,-size,size,"cyan");
-					ctx.font="8px sans-serif";
+					ctx.font=8/3*size+"px sans-serif";
 					ctx.fillStyle="#666666";
 					ctx.fillText("G",0,0);
 					ctx.restore();
@@ -70,21 +70,23 @@ function gameBitsTester(){
 		{
 			let relPosA=new pointEnt({
 				rel:nullPoint,
-				vec:[40,0],
-				mat:[[1,0],[1,1]],
+				vec:[60,20],
+				mat:[[1,1],[0,1]],
 			});
 			let relPosB=new pointEnt({
 				rel:nullPoint,
-				vec:[0,60],
+				vec:[0,90],
 				mat:[[1,0],[0,1]],
 			});//OA + OB -0A
-			let relPosC=new pointEnt({
-				rel:relPosA,
-				vec:[0,40],
-				mat:[[1,0],[0,1]],
-			});
+			{
+				let relPosC=new pointEnt({
+					rel:relPosA,
+					vec:[80,0],
+					mat:[[1,0],[0,1]],
+				});
+			}
 			let pos_A_to_B=new Pos({rel:relPosA})
-				.sub(relPosA)
+				.add(relPosA.sub())
 				.add(relPosB)
 				//.set({rel:relPosA})
 			let RelPos_A_to_B=new pointEnt().set(pos_A_to_B);
@@ -98,7 +100,7 @@ const Space={
 	Chunk:class{},
 	Entity:class{},
 };
-{//position and chunks
+{//position vectors
 	//Space.Pos() Notes:
 		//pos has: {mat,vec,rel,obj};
 		//has: add,sub,get,set;
@@ -144,7 +146,7 @@ const Space={
 			}
 			//if(!(pos instanceof Pos))pos=new Pos(pos);
 			if(pos.obj||ans.obj){//AB + BC = AC
-				if(ans.obj==pos.rel){//||(!pos.obj||!this.rel)
+				if(ans.obj==pos.rel||ans.obj===null||pos.rel==null){//||(!pos.obj||!this.rel)
 					ans.obj=pos.obj;//ans.rel=pos.rel;
 				}
 				//else return ans;//ignore rule
@@ -224,14 +226,18 @@ const Space={
 			}
 		}
 		toString(){
-			return "Pos{ obj:("+this.rel+" -> "+this.obj+") * mat:["+this.mat+"] + vec:["+this.vec+"] }"
+			return "Pos{ "
+				+(this.hasOwnProperty('rel')||this.hasOwnProperty('obj')?"obj:("+this.rel+" -> "+this.obj+") *":"")
+				+(this.hasOwnProperty('obj')?" mat:["+this.mat+"] +":"")
+				+" vec:["+this.vec+"] }"
 		}
-	};Space.Pos=Pos;
+	};
 	//note (void 0) == undefined it just is
 	Pos.prototype.vec=[0,0];//new Math.Vector2();
 	Pos.prototype.mat=[[1,0],[0,1]];//new Math.Matrix2();
 	Pos.prototype.rel=undefined;//relitiveObject (useraly (void 0)) add(pos) = rel->obj;
 	Pos.prototype.obj=undefined;
+	Space.Pos=Pos;
 	class RelPos extends Pos{
 		//+pos = rel->obj; entity->chunk
 		constructor(pos){
@@ -261,7 +267,8 @@ const Space={
 		//	return this.obj.set(pos.sub(this.rel));
 		//}
 	};Space.RelPos=RelPos;
-	class Chunk extends Set{//array of Space.Pos({rel:chunk,obj:entity});
+}{
+	Space.Chunk=class Chunk extends Set{//array of Space.Pos({rel:chunk,obj:entity});
 		chunkSymbol=this.constructor.chunkSymbol;
 		constructor(setAry){
 			super(setAry);
@@ -277,7 +284,12 @@ const Space={
 			}
 		}
 		static chunkSymbol=Symbol("chunk");
-	};Space.Chunk=Chunk;
+	};
+	class Sprite{
+		constructor(){
+
+		}
+	}Space.Sprite=Sprite;
 }if(0){//HyperbolicSpace extends Space
 	class PosH extends Space.Pos{
 		constructor(){

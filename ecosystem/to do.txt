@@ -1,6 +1,33 @@
 to do:
-eco.js: ~line 286 - refind object
-Math.js: Vector/Matrix classes
+reffer to RPScreatures to see an example of these classes from Version2 engine
+current things to do:{
+	1:{
+		`Math.js` - add functions to Vector class like Vector2.
+	},
+	1.1:{
+		`Math.js` - add functions to Matrix class like Matrix.add (mat)
+	},
+	2:{
+		`gameLoop.js` - `UpdateScript`: add thinks to is to make them a little more usefull,
+	},
+	3:{
+		`world.js` - recreate `World`;
+		`World`:{
+			`World` is a DOM-like database for storing GameObjects instead of HTML elements.
+			doesnt HAVE to use any convensions/classes already made.
+		},
+	},
+	4:{
+		`gameBits.js` - `Space.Entity` : make `class Entity`,
+		Should contain a `Space.Pos` object. Entities can be attached to world chunks and makes deleting it simple.
+		Entities also move through portals.
+	}
+	5:{
+		`gameBits.js` - `Space.Sprite or just Sprite` : similar to Entity but with more script and costume support, scripts are deleted in Sprite.prototype.delete().
+	}
+}
+
+
 eco.js - resetting system:{
 	save,load,
 }
