@@ -182,7 +182,7 @@ class IOEngine{
 						}
 						if(event.code in this.keys){
 							this.keys.current=event.key;
-							this.keys[event.key].down=true;
+							this.keys[event.code].down=true;
 						}
 					},
 					keyup:(event)=>{
