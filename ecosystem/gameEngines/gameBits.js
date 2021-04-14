@@ -4,7 +4,8 @@ function gameBitsTester(){
 		let mainGame=new MainGame();
 		window.mainGame=mainGame;
 		//mainGame.layers.draw[3].add(()=>{ctx.fillStyle="white";ctx.fillRect(-Draw.width,-Draw.height,Draw.width*3,Draw.height*3);});
-		mainGame.layers.update[4].add(()=>Object.assign(nullPoint.vec,Inputs.mouse.vec2));
+		mainGame.layers.update[4].add(()=>Object.assign(relPosA.mat[1],vec2(scaleVec2(Inputs.mouse.vec2,0.1)).add([-10,-10])));
+		mainGame.layers.update[4].add(()=>new Pos({rel:relPosA}).sub(relPosA).addR(relPosB).set({rel:relPosA}).setR(relPos_A_to_B));
 		let pointEnt=class extends Space.RelPos{
 			constructor(pos,rel_obj){
 				super(pos);
@@ -59,7 +60,7 @@ function gameBitsTester(){
 		let nullPoint=new pointEnt();
 		nullPoint.set({vec:[Draw.width/2,Draw.height/2]});
 		nullPoint.name="nullPoint";
-		let points=[nullPoint]
+		let points=[nullPoint];
 		for(let i=0;i<0;i++){
 			points.push(new pointEnt({
 				rel:points[(random()*points.length)|0],
@@ -67,29 +68,30 @@ function gameBitsTester(){
 				mat:[[1,0],[0,1]],
 			}));
 		}
+		let relPosA,relPosB,relPos_A_to_B;
 		{
-			let relPosA=new pointEnt({
+			relPosA=new pointEnt({
 				rel:nullPoint,
 				vec:[60,20],
 				mat:[[1,1],[0,1]],
 			});
-			let relPosB=new pointEnt({
+			relPosB=new pointEnt({
 				rel:nullPoint,
 				vec:[0,90],
 				mat:[[1,0],[0,1]],
 			});//OA + OB -0A
-			{
-				let relPosC=new pointEnt({
-					rel:relPosA,
-					vec:[80,0],
-					mat:[[1,0],[0,1]],
-				});
-			}
+			let relPosC=new pointEnt({
+				rel:relPosA,
+				vec:[80,0],
+				mat:[[1,0],[0,1]],
+			});
 			let pos_A_to_B=new Pos({rel:relPosA})
-				.add(relPosA.sub())
+				.sub(relPosA)
 				.add(relPosB)
 				//.set({rel:relPosA})
-			let RelPos_A_to_B=new pointEnt().set(pos_A_to_B);
+			;
+			new pointEnt({rel:new pointEnt({rel:relPosC,vec:[30,20]}),vec:[30,20]});
+			relPos_A_to_B=new pointEnt().set(pos_A_to_B);
 		}
 	}}
 	mainGame.start();
@@ -122,8 +124,11 @@ const Space={
 		}
 		getR(pos=new Pos()){return pos.get(this);}
 		setR(pos=new Pos()){return pos.set(this);}
+		get objVec(){return new Pos({rel:this.rel,obj:this.obj});}
+		get matVec(){return new Pos({mat:this.rel,vec:this.obj});}
+
 		get(){//clone this
-			return this;
+			return new Pos(this);
 		}
 		set(pos=Pos.prototype){//assign this
 			//Object.assign(this,pos);
@@ -207,6 +212,7 @@ const Space={
 					rel:this.obj
 				});
 				let det=this.mat[0][0]*this.mat[1][1]-this.mat[0][1]*this.mat[1][0];
+				if(det==0)det=1;
 				return new Pos({
 					vec:[
 						(-this.vec[0]*this.mat[1][1]+this.vec[1]*this.mat[1][0])/det,
@@ -228,7 +234,7 @@ const Space={
 		toString(){
 			return "Pos{ "
 				+(this.hasOwnProperty('rel')||this.hasOwnProperty('obj')?"obj:("+this.rel+" -> "+this.obj+") *":"")
-				+(this.hasOwnProperty('obj')?" mat:["+this.mat+"] +":"")
+				+(this.hasOwnProperty('mat')?" mat:["+this.mat+"] +":"")
 				+" vec:["+this.vec+"] }"
 		}
 	};
