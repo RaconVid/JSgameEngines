@@ -68,7 +68,7 @@ class MainGame{
 		spriteObj.id=String(id);
 	}
 	deleteId(id){
-		freeIds.push(id);
+		this.freeIds.push(id);
 		delete this.sprites[id];
 	}
 	start(){
