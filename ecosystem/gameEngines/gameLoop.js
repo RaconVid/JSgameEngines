@@ -228,8 +228,9 @@ class MainGame{
 			}
 			layerScript(){
 				for(let i of this){
+					//if(!i)continue;
 					if(typeof i=='function')i();
-					else if(i.next)i.next();
+					else if(i.next)i.next();//if(i.next()?.done);
 					else if(i.onUpdate)i.onUpdate();
 				}
 			}
@@ -242,8 +243,8 @@ class MainGame{
 		this.time=new Time();
 		this.orderLength=1;
 		this.mainLayers={
-			update:new this.UpdateLayer(),
-			draw:new this.UpdateLayer(),
+			update:new this.UpdateLayer(20),
+			draw:new this.UpdateLayer(20),
 		}
 		this.mainLayers.update.onUpdate=function(){//default function
 			this.layerScript();
