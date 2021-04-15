@@ -106,7 +106,9 @@ const Space={
 	//Space.Pos() Notes:
 		//pos has: {mat,vec,rel,obj};
 		//has: add,sub,get,set;
+		//reversed arguments: a.addR(b)==b.add(a)
 		//AB + CA = BC
+		//OA->OB = OB.sub(OA) => A + (B-A) = B
 		//objectVectors:{
 			//AB + CA = BC
 			//(ignored rule) only moves rel to obj, ignors other chunks

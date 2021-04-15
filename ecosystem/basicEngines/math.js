@@ -167,7 +167,7 @@
 						}
 					}
 				}
-				//ans[1][i]=matA[i]+matB[i];
+				ans[1][i]=matA[i]+matB[i];
 			}
 			return ans;
 		}
@@ -185,113 +185,7 @@
 						ans[i][j]+=matB[i][j];
 					}
 				}
-				ans[1][i]=Amatrix_vec+Bmatrix_vec;
-			}
-			return ans;
-		}
-		//UNFINISHED
-		Math.inverseMatrix=function(matA){//A by B (matrix); boths lengths >0
-			if(matrixA.length==2&&matrixA[0].length==2){
-				return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]]];
-			}
-			if(matrixA.length==3&&matrixA[0].length==2){
-				return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]],[-matA[2][0],-matA[2][2]]];
-			}
-			else{
-
-			}
-		}
-		Math.matrix_minors=function(matA){//A by B (matrix); boths lengths >0
-			
-		}
-		Math.matrix_det=function(matA){
-			let det=0;
-			if(minorMat.length==1&&minorMat[0].length==1){
-				minors[y][x]=minorMat[0][0];
-			}
-			else{
-
-			}
-			for(let x=0;x<matA[0].length;x++){
-				let minorMat=[];
-				for(let y1=0;y1<matA.length;y1++){
-					if(y1==y)continue;
-					minorMat.push([]);
-					for(let x1=0;x1<matA[y1].length;x1++){
-						if(x1==x)continue;
-						minorMat[y1].push(matA[y1][x1]);
-					}
-				}
-				//find det of min
-				if(minorMat.length==1&&minorMat[0].length==1){
-					det+=minorMat[0][0]*(x%2==0?1:-1);
-				}
-				else{
-					Math.matrix_det()
-				}
-			}
-		}
-		Math.inverseMatrix=function(matA){
-			let minors=[];
-			for(let y=0;y<matA.length;y++){
-				minors.push([]);
-				for(let x=0;x<matA[y].length;x++){
-					minors[y].push(undefined);
-					let minorMat=[];
-					for(let y1=0;y1<matA.length;y1++){
-						if(y1==y)continue;
-						minorMat.push([]);
-						for(let x1=0;x1<matA[y1].length;x1++){
-							if(x1==x)continue;
-							minorMat[y1].push(matA[y1][x1]);
-						}
-					}
-					//find det of min
-					if(minorMat.length==1&&minorMat[0].length==1){
-						minors[y][x]=minorMat[0][0];
-					}
-					else{
-
-					}
-				}
-			}
-		}
-	}
-	{//matrix
-		Math.transform=function(matA,matB){//A by B (matrix); boths lengths >0
-			let ans=[];
-			for (let i = 0; i < matA.length; i++) {
-				ans[i]=[];
-				for (let j = 0; j < matB[0].length; j++) {
-					ans[i][j]=0;
-					for (let k = 0; k < matB.length; k++) {
-						if(k>=matA[i].length&&k==i){
-							ans[i][j]+=matB[k][j];
-						}
-						else if(k<matA[i].length){
-							ans[i][j]+=matA[i][k]*matB[k][j];
-						}
-					}
-				}
-				//ans[1][i]=matA[i]+matB[i];
-			}
-			return ans;
-		}
-		Math.undotransform=function(matA,matB){//A by B (matrix); boths lengths >0
-			
-			return ans;
-		}
-		Math.timesMatrix=function(matA,matB){//A by B (matrix); boths lengths >0
-			let ans=[];
-			for (let i = 0; i < matA.length; i++) {
-				ans[i]=[];
-				for (let j = 0; j < matB[0].length; j++) {
-					ans[i][j]=0;
-					for (let k = 0; k < matA[0].length; k++) {
-						ans[i][j]+=matB[i][j];
-					}
-				}
-				ans[1][i]=Amatrix_vec+Bmatrix_vec;
+				//ans[1][i]=Amatrix_vec+Bmatrix_vec;
 			}
 			return ans;
 		}
