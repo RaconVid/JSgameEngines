@@ -44,7 +44,7 @@ JSON.list=function(object){
 			}
 		}
 		if(typeof value !== "object"){
-			return "("+value+")";
+			return ""+value;//"("+value+")";
 		}
 		index=objs.indexOf(value);
 		if(index!=-1){
@@ -77,8 +77,11 @@ JSON.list=function(object){
 	let callBack=[];
 	let obj2=[];
 	obj2.push(cloneStep({value:object}));
+	let value;
 	for(let i=0;i<callBack.length&&i*0<10000;i++){
-		callBack[i].returnFunc(obj2.push(cloneStep(callBack[i])));
+		value=cloneStep(callBack[i]);
+		callBack[i].returnFunc(value);
+		obj2.push(value);
 	}
 	return{
 		objs:objs,//list of different objects
@@ -90,3 +93,22 @@ JSON.list=function(object){
 	//JSON.stringify(JSON.list(mainGame).refs).length
 	//JSON.list(mainGame).trees.map(v=>v.join(" ")).join("\n").length
 };
+JSON.parseList=function(objectRefs){
+	let object=[];
+	for(let i=0;i<objectRefs.length;i++){
+		for(let value in objectRefs[i]){
+			if(typeof objectRefs[i][value]=="number"){
+				objectRefs[i][value]=objectRefs[objectRefs[i][value]];
+			}
+			else if(typeof objectRefs[i][value]=="string"){
+				if(objectRefs[i][value][0]=="("){//is funtion?
+					//objectRefs[i][value]=eval(objectRefs[i][value]);
+				}
+				else{
+					objectRefs[i][value]=JSON.parse(objectRefs[i][value]);
+				}
+			}
+		}
+	}
+	return objectRefs[0];
+}
