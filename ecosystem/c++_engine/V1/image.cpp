@@ -1,6 +1,6 @@
 #include <iostream>
-#include <fstream>
 #include <string>
+#include <opencv/
 using namespace std;
 
 //main function of this code
@@ -9,5 +9,5 @@ string whatFile;
 string fileLocation;
 
 string readImages(string file, string whatFile, string fileLocation){
-    
+
 }
