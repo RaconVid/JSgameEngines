@@ -160,13 +160,15 @@ class MainGame{
 				//new US(l=>l.draw[4],function*(deleter){...deleter()}))
 				this.getEvent=eventGetter;
 				this.getScript=scriptGetter;
-				this.deleter=this.getEvent(mainGame.layers).add(this.getScript(()=>this.onDelete(),))
+				this.deleter=()=>{};
+				this.onLoad();
+				this.isRunning=false;
 			}
 			onLoad(){
-				eventGetter().add(this.script)
+				this.deleter=this.getEvent(mainGame.layers).add(this.getScript(()=>this.onDelete(),this))
 			}
 			onUnload(){
-				
+				this.onDelete();
 			}
 			onDelete(){
 				this.deleter();
@@ -176,6 +178,8 @@ class MainGame{
 			}
 		}
 		this.UpdateLayer=class UpdateLayer extends Array{
+			i=-1;
+			isDeleting=false;
 			constructor(length=10){
 				if(arguments.length<=1&&typeof length=='number'){
 					super(length);
@@ -198,7 +202,21 @@ class MainGame{
 
 				}
 				onDelete(){
-
+					
+					if(this.i!=-1&&!this.isDeleting){
+						this.clear();
+						this.add(()=>this.onDelete());
+						this.isDeleting=true;
+					}
+					else for(let i of this){
+						if(i)continue;
+						else if(i.onDelete)i.onDelete();
+						else if(i.return){
+							i.return();
+						};
+						this.clear();//this.splice(0,this.length);
+						//this.isDeleting=false;
+					}
 				}
 			//item handling
 				add(item){
@@ -215,7 +233,11 @@ class MainGame{
 				delete(item){
 					let index=this.indexOf(item);
 					if(index!=-1){
-						this.splice(index,1);
+						if(index>this.i){
+							this.splice(index,1);
+						}else{
+							this[i]=undefined;
+						}
 						return ()=>this.add(item);
 					}
 					else return false;
@@ -227,12 +249,22 @@ class MainGame{
 
 			}
 			layerScript(){
-				for(let i of this){
-					//if(!i)continue;
-					if(typeof i=='function')i();
-					else if(i.next)i.next();//if(i.next()?.done);
-					else if(i.onUpdate)i.onUpdate();
+				if(this.isDeleting){return this.onDelete();}
+				this.i=0;
+				for(let i=0;i<this.length;i++){
+					this.i=i;
+					if(!(this[i]==undefined||this[i]?.isDeleting)){
+						if(typeof i=='function')i();
+						else if(i.next)i.next();//if(i.next()?.done);
+						else if(i.onUpdate)i.onUpdate();
+					}
+					if(this[i]==undefined||this[i]?.isDeleting){
+						i--;
+						this.splice(i,1);
+						continue;
+					}
 				}
+				this.i=-1;
 			}
 			UpdateScript(scriptFunc){
 				this(scriptFunc);
