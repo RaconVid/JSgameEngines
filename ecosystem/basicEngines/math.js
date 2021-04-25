@@ -172,7 +172,6 @@
 			return ans;
 		}
 		Math.undotransform=function(matA,matB){//A by B (matrix); boths lengths >0
-			
 			return ans;
 		}
 		Math.timesMatrix=function(matA,matB){//A by B (matrix); boths lengths >0
@@ -182,7 +181,7 @@
 				for (let j = 0; j < matB[0].length; j++) {
 					ans[i][j]=0;
 					for (let k = 0; k < matA[0].length; k++) {
-						ans[i][j]+=matB[i][j];
+						ans[i][j]+=matA[i][k]*matB[k][j];
 					}
 				}
 				//ans[1][i]=Amatrix_vec+Bmatrix_vec;

@@ -160,7 +160,7 @@ class MainGame{
 				//new US(l=>l.draw[4],function*(deleter){...deleter()}))
 				this.getEvent=eventGetter;
 				this.getScript=scriptGetter;
-				this.deleter=getEvent(mainGame.layers).add(this.getScript(()=>this.onDelete(),))
+				this.deleter=this.getEvent(mainGame.layers).add(this.getScript(()=>this.onDelete(),))
 			}
 			onLoad(){
 				eventGetter().add(this.script)
