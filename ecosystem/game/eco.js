@@ -49,8 +49,8 @@
 				}
 				else if(first){first=false;}
 				else if(!Inputs.mouse.down){
-					if(0){yield;continue;}
-				}else if(0){
+					if(1){yield;continue;}
+				}else if(1){
 					scalar=Math.len2(Inputs.mouse.vec2,middleVec);
 					scalar=scalar/100;
 					window.scalar=scalar;
@@ -83,13 +83,17 @@
 					loga(coordsList,"MEMORY LEAK");throw"MEMORY LEAK";
 				}
 				Draw.circle(...middleVec,3,"#AAC0CCB0");
+				let scale=50;
+				let doScale=()=>{
+					ctx.scale(scale,-scale);
+				}
 				ctx.save();
 				ctx.translate(250,200);
-				let scale=50;
+				ctx.save();
+				ctx.scale(scale,-scale);
 				ctx.lineWidth=2/scale;
 				ctx.strokeStyle="white";
-				ctx.scale(scale,-scale);
-				if(0){
+				if(1){
 					ctx.beginPath();
 					for(let i=0;i<coordsList.length;i++){
 						let c1=coordsList[i];
@@ -105,7 +109,9 @@
 					ctx.stroke();
 				}
 				{
-					let t=((mg.time.start/4)%1)*Math.TAU;
+					ctx.scale(scale,-scale);
+					ctx.lineWidth=2/scale;
+					let t=((mg.time.start/4)%1)*Math.TAU*0;
 					let rot=posA.map(v=>Math.rotate(Math.rotate(v,0,0,1),0+t,0,2));
 					let cols=["red","green","blue"];
 					Draw.circle(0,0,ctx.lineWidth*2,"grey");
@@ -124,33 +130,84 @@
 	}
 	mg.start();
 }
-if(false){
-	class Entity{
-		constructor(){
-
+if(true){
+	class Event{
+		constructor(name){
+			let newObj=function(){
+				for(let i of this.list){
+					i[name]();
+				};
+			}
+		}
+	}
+	class Sprite{
+		scripts={};
+		constructor(objData){
+			let scripts=objData.scripts;
+			for(let i in scripts){
+				this.scripts[i]=this.makeScript(scripts[i]);
+				this.bindScript(this.scripts[i]);
+				if(i=='onLoad'){
+					this.loadList.add(this.scripts[i]);
+					this.unloadList.add(this.scripts[i]);
+				}
+			}
+		}
+		bindScript(script){
+			script.scriptGetter=script.scriptGetter.bind(this);
+			this.deleteList.add(script);
+			//this.loadList.add(script);
+			return this;
+		}
+		//
+			loadList=new Set();
+			isLoaded=false;
+			onLoad(){
+				for(let i of this.loadList){
+					i.onLoad();
+					//this.loadList.delete(i);
+					//this.unloadList.add(i);
+				}
+				this.isLoaded=true;
+				return this;
+			}
+		//
+			unloadList=new Set();
+			isUnloaded=true;
+			onUnload(){
+				for(let i of this.unloadList){
+					i.onUnload();
+					this.unloadList.delete(i);
+					//this.loadList.add(i);
+				}
+				this.isLoaded=true;
+				return this;
+			}
+		//
+			deleteList=new Set();
+			isDeleted=true;
+			onDelete(){
+				for(let i of this.unloadList){
+					i.onDelete();
+					this.deleteList.delete(i);
+				}
+				this.isDeleted=true;
+				return this;
+			}
+		makeScript(scriptData){
+			let script=scriptData.script.bind(this);
+			let layer=scriptData.layer;
+			return new mainGame.UpdateScript(script,layer,false).bindSprite(this);
 		}
 	};
-	let player;{
-		player={
-			parts:[],
-		};
-	}
-	let virus;{
-		virus={
-			get sleep(){},
-			set sleep(val){},
-			start(){
-
-			},
-			clone(){
-				return this;
-			},
-			update(){
-				let newObj=new this.clone();
-				newObj.start=true;
-			},
-			isSleep:false,
-		};
-
-	}
+	let menu=new Sprite({
+		scripts:{
+			onLoad:{layer:l=>l.update[8],script(layer,script){
+				this.scripts.main.onLoad();
+			}},
+			main:{layer:l=>l.draw[8],script(layer,script){
+				Draw.circle(100,100,5,"green");
+			}},
+		},
+	});
 }
