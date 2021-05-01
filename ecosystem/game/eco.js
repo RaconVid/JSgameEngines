@@ -73,6 +73,7 @@
 					}
 					posA=a(1);
 				}
+				posA=posA.map(v=>Math.scale(v,1/Math.len(v)));
 				yield;
 			}
 			del();
@@ -80,7 +81,7 @@
 		new mg.UpdateScript(l=>l.draw[5],function*(){
 			while(true){
 				if(coordsList.length>10**6){
-					loga(coordsList,"MEMORY LEAK");throw"MEMORY LEAK";
+					console.log(coordsList);alert("MEMORY LEAK");throw"MEMORY LEAK";
 				}
 				Draw.circle(...middleVec,3,"#AAC0CCB0");
 				let scale=50;
@@ -132,11 +133,20 @@
 }
 if(true){
 	class Event{
+		list=new Set();
+		is=false;
+		key;
 		constructor(name){
+			this.key=name;
 			let newObj=function(){
 				for(let i of this.list){
 					i[name]();
 				};
+			}
+		}
+		on(){
+			for(let i of this.list){
+				i[]
 			}
 		}
 	}
@@ -154,7 +164,7 @@ if(true){
 			}
 		}
 		bindScript(script){
-			script.scriptGetter=script.scriptGetter.bind(this);
+			script.getScript=script.getScript.bind(this);
 			this.deleteList.add(script);
 			//this.loadList.add(script);
 			return this;
@@ -197,17 +207,30 @@ if(true){
 		makeScript(scriptData){
 			let script=scriptData.script.bind(this);
 			let layer=scriptData.layer;
-			return new mainGame.UpdateScript(script,layer,false).bindSprite(this);
+			return new mainGame.UpdateScript(layer,script,false).bindSprite(this);
 		}
 	};
+	//events in order;
+	//start: init scripts 
+	//load: activates scripts.
+	//unload: pause scripts.
+	//delete: end scripts.
 	let menu=new Sprite({
 		scripts:{
-			onLoad:{layer:l=>l.update[8],script(layer,script){
-				this.scripts.main.onLoad();
-			}},
+			onLoad:{
+				layer:l=>l.update[8],
+				script(layer,script){
+					return 
+					this.scripts.main.onLoad();loga(this,"load");
+					script.onDelete();
+				}
+			},
 			main:{layer:l=>l.draw[8],script(layer,script){
-				Draw.circle(100,100,5,"green");
+				Draw.circle(100,100,5,"green");loga(this,"main");
 			}},
 		},
-	});
+		values:{
+
+		},
+	}).onLoad();
 }

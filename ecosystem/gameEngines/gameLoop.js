@@ -195,10 +195,13 @@ class MainGame{
 					this.deleter=()=>false;
 					return this;
 				}
+				onStart(){
+					
+				}
 				onDelete(){
 					this.deleter();
 					this.scriptInstance=false;
-					isDeleting=true;
+					this.isDeleting=true;
 					return this;
 				}
 				[Symbol.iterator](){
