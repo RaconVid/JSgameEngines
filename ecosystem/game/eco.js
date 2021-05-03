@@ -2,7 +2,7 @@
 	var mainGame;{
 		mainGame = new MainGame();
 	}let mg = mainGame;
-	{
+	if(false){
 		var coordsList=[];
 		var middleVec=[Draw.width/2,Draw.height/2];
 		let scalar=Math.atanh(Math.atan(1));//~1.06
@@ -132,105 +132,129 @@
 	mg.start();
 }
 if(true){
-	class Event{
-		list=new Set();
-		is=false;
-		key;
-		constructor(name){
-			this.key=name;
-			let newObj=function(){
-				for(let i of this.list){
-					i[name]();
-				};
-			}
-		}
-		on(){
-			for(let i of this.list){
-				i[]
-			}
+	let mg=mainGame;
+	let l={
+		u:mainGame.layers.update,
+		d:mainGame.layers.draw,
+	};
+	let joysticks=[];
+	setupJoysticks:{
+		let joysticksKeys=[
+			['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'],
+			['KeyW','KeyA','KeyS','KeyD'],
+		];
+		for(let i=0;i<joysticksKeys.length;i++){
+			joysticksKeys[i]=joysticksKeys[i].map(v=>Inputs.getKey(v));
+			joysticks[i]={
+				keys:joysticksKeys[i],
+				lastValue:[0,0],
+				get vec2(){
+					return Math.vec2(this.keys[3].down-this.keys[1].down,this.keys[0].down-this.keys[2].down);
+				},
+			};
 		}
 	}
-	class Sprite{
-		scripts={};
-		constructor(objData){
-			let scripts=objData.scripts;
-			for(let i in scripts){
-				this.scripts[i]=this.makeScript(scripts[i]);
-				this.bindScript(this.scripts[i]);
-				if(i=='onLoad'){
-					this.loadList.add(this.scripts[i]);
-					this.unloadList.add(this.scripts[i]);
-				}
-			}
-		}
-		bindScript(script){
-			script.getScript=script.getScript.bind(this);
-			this.deleteList.add(script);
-			//this.loadList.add(script);
-			return this;
-		}
-		//
-			loadList=new Set();
-			isLoaded=false;
-			onLoad(){
-				for(let i of this.loadList){
-					i.onLoad();
-					//this.loadList.delete(i);
-					//this.unloadList.add(i);
-				}
-				this.isLoaded=true;
-				return this;
-			}
-		//
-			unloadList=new Set();
-			isUnloaded=true;
-			onUnload(){
-				for(let i of this.unloadList){
-					i.onUnload();
-					this.unloadList.delete(i);
-					//this.loadList.add(i);
-				}
-				this.isLoaded=true;
-				return this;
-			}
-		//
-			deleteList=new Set();
-			isDeleted=true;
-			onDelete(){
-				for(let i of this.unloadList){
-					i.onDelete();
-					this.deleteList.delete(i);
-				}
-				this.isDeleted=true;
-				return this;
-			}
-		makeScript(scriptData){
-			let script=scriptData.script.bind(this);
-			let layer=scriptData.layer;
-			return new mainGame.UpdateScript(layer,script,false).bindSprite(this);
-		}
-	};
-	//events in order;
-	//start: init scripts 
-	//load: activates scripts.
-	//unload: pause scripts.
-	//delete: end scripts.
-	let menu=new Sprite({
-		scripts:{
-			onLoad:{
-				layer:l=>l.update[8],
-				script(layer,script){
-					return 
-					this.scripts.main.onLoad();loga(this,"load");
-					script.onDelete();
+	startMainMenu=function(){
+		let menu={
+			start(){
+				let mouseOverRect=function(rect,mousePos=Inputs.mouse.vec2){
+					return ((mousePos[0]-rect[0])>=0&&(mousePos[0]-rect[0])<=rect[2])&&((mousePos[1]-rect[1])>=0&&(mousePos[1]-rect[1])<=rect[3]);
+				};
+				{
+					let button={
+						rect:[200,200,150,70],
+						drawData:{
+							border:{
+								fillStyle:"#AACACA80",
+								strokeStyle:"#4A4A4A40",
+								lineWidth:3,
+								borderScale:1.1,
+							}
+						},
+
+						dels:[],
+						start(){
+							for(let i in this.dels){
+								this.dels[i]();
+							}{
+								const del=l.u[4].add(this.main(()=>del()));
+								this.dels.main=del;
+							}
+						},
+						onClick(){
+						},
+						*main(del){
+							this.baseDraw=()=>{//
+								ctx.beginPath();
+								let styles=this.drawData.border;
+								ctx.fillStyle=styles.fillStyle;
+								ctx.strokeStyle=styles.strokeStyle;
+								ctx.lineWidth=styles.lineWidth;
+								let scale=styles.borderScale;
+								ctx.rect(
+									this.rect[0]-this.rect[2]*(scale-1)/2,
+									this.rect[1]-this.rect[3]*(scale-1)/2,
+									this.rect[2]*scale,
+									this.rect[3]*scale,
+								);
+								ctx.stroke();
+								ctx.fill();
+								ctx.rect(
+									this.rect[0]-this.rect[2]*(scale-1)/2,
+									this.rect[1]-this.rect[3]*(scale-1)/2,
+									this.rect[2]*scale,
+									this.rect[3]*scale,
+								);
+								ctx.stroke();
+								ctx.fill();
+								ctx.fillStyle="white";
+								ctx.fillText("hello world",(this.rect[0]+this.rect[2]/2),(this.rect[1]+this.rect[3]/2));
+							};let baseDraw_add=()=>l.d[9].add(this.baseDraw);
+							let endDraw0;
+							start1:{
+								endDraw0=baseDraw_add();
+							}
+							let endDraw1,delDetectorScript;
+							onMouseOver:{
+								let detector=function*(del){
+									while(true){
+										if(mouseOverRect(this.rect)){
+											let timer=0;let time0=mg.time.start;
+											endDraw0();
+											this.onOverDraw=()=>{
+												ctx.save();
+												this.baseDraw();
+												ctx.translate(0,-5);
+												this.baseDraw();
+												ctx.restore();
+											};
+											let endDraw1=l.d[9].add(this.onOverDraw);
+											while(mouseOverRect(this.rect)){
+												timer=mg.time.start-time0;
+												yield;
+											}
+											//endDraw0();
+											endDraw1();
+											baseDraw_add();
+											yield;
+										}
+										yield;
+									}
+
+								}.bind(this);
+								let del=l.u[6].add(detector(()=>del()));
+								delDetectorScript=del;
+							}
+						},
+					};
+					button.start();
 				}
 			},
-			main:{layer:l=>l.draw[8],script(layer,script){
-				Draw.circle(100,100,5,"green");loga(this,"main");
-			}},
-		},
-		values:{
+		};
+		menu.start();
+		let dels=[
 
-		},
-	}).onLoad();
+		];
+	};startMainMenu();
+	mg.start()
 }
