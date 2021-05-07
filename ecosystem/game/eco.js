@@ -2,7 +2,7 @@
 	var mainGame;{
 		mainGame = new MainGame();
 	}let mg = mainGame;
-	if(false){
+	if(true){
 		var coordsList=[];
 		var middleVec=[Draw.width/2,Draw.height/2];
 		let scalar=Math.atanh(Math.atan(1));//~1.06
@@ -14,7 +14,7 @@
 			[-1,2],
 			[1,1]
 		];
-		list=[[1,1],[-1,2],[-1,1],[1,2],[1,1]];
+		//list=[[1,1],[-1,2],[-1,1],[1,2],[1,1]];
 		var posA;
 		new mg.UpdateScript(l=>l.update[5],function*(del){
 			let rotateh=function rotateh(coords,angle,axisA,axisB){
@@ -77,7 +77,7 @@
 				yield;
 			}
 			del();
-		});
+		}());
 		new mg.UpdateScript(l=>l.draw[5],function*(){
 			while(true){
 				if(coordsList.length>10**6){
@@ -127,7 +127,7 @@
 				ctx.fillText("scalar:"+scalar,...middleVec);
 				yield;
 			}
-		});
+		}());
 	}
 	mg.start();
 }

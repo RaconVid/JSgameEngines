@@ -33,7 +33,7 @@ class MainGame{
 					if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
 				}
 				attachLayer(layer=this.layer,layer_i){//attach to layer
-					if(typeof layer_i=="number"&&layer_i!=NaN){
+					if(typeof layer_i=='number'&&layer_i!=NaN){
 						layer.list[layer_i]=this;
 					}
 					else if(layer_i==undefined){
@@ -58,14 +58,14 @@ class MainGame{
 				}
 			};
 			//Version 0.1.1
-			this.UpdateScript=class extends this.UpdateScriptV1_0{
+			this.UpdateScriptV1_1=class extends this.UpdateScriptV1_0{
 				constructor(getLayer=v=>null,itterScript=(function*(){})(),sprite,autoAdd){
 					let layer=getLayer;
-					if(typeof getLayer == "function"){
+					if(typeof getLayer == 'function'){
 						layer=getLayer(mainGameObj.layers);
 					}
 					super(sprite,layer,undefined,itterScript,autoAdd);
-					if(typeof itterScript=="function")
+					if(typeof itterScript=='function')
 						this.onUpdate=function(layer,i,pos){
 							this.isDeleting=Boolean(this.script(layer,i,pos));
 							//if(returns false or 0){delete script}
@@ -117,7 +117,7 @@ class MainGame{
 					}
 				}
 			}
-			this.UpdateLayer=class{
+			this.UpdateLayerV1_0=class{
 				constructor(onUpdate=()=>{this.layerScript();},list=[]){
 					this.onUpdate=onUpdate;
 					this.list=list;
@@ -154,46 +154,67 @@ class MainGame{
 				}
 			};
 		//V2 0.2.1 gameEngine
+			const GeneratorFunction=(function*(){}).constructor;
 			this.UpdateScript=class UpdateScript{
-				eventGetter;
-				scriptGetter;
+				script=()=>{return false;};
+				layer;
+				//getScript;
+				//getLayer;
 				isDeleting=false;
-				deleter=undefined;
-				currentLayer=undefined;//=getEvent();
-				currentSprite=undefined;
-				constructor(event,script,instaLoad=true){
-					//new US(l=>l.draw[4],function*(deleter){...deleter()}))
-					this.eventGetter=event||(l=>l.update[8]);
-					this.scriptGetter=script||((del,script)=>()=>del());
-					if(instaLoad){
-						this.onLoad();
+				constructor(getLayer,getScript,autoLoad=true){
+					//note: getLayer=(l)=>l.update[8]
+					//note: getScript=function/iterator/generator
+					if(typeof getLayer == 'function'){
+						this.getLayer=getLayer;
+						this.layer=getLayer(mainGameObj.layers);
+					}else{
+						this.getLayer=()=>getLayer;
+						this.layer=getLayer;
 					}
+					if(getScript instanceof GeneratorFunction){
+						this.getScript=getScript;
+						this.script=getScript(this);
+					}else{
+						this.getScript=()=>getScript;
+						this.script=getScript;
+					}
+					if(typeof this.script=='function'){
+						this.onUpdate=function(layer,i,pos){
+							this.isDeleting=Boolean(this.script(layer,i,pos));
+							if(this.isDeleting){this.detach();}
+							//if(returns false or 0){delete script}
+						}
+					}
+					else{
+						this.onUpdate=function(layer,i,pos){
+							this.isDeleting=this.script.next(layer,i,pos).done;
+							if(this.isDeleting){this.detach();}
+							//if(returns false or 0){delete script}
+						}
+					}
+					this.attach();
 				}
-				getScript(){
-					this.currentScript=this.scriptGetter(this,this.sprite);//stopThis,
-					return this.currentScript;
+				attach(){
+					//this.layer=this.getLayer(mainGameObj.layers);
+					this.layer.add(this);return this;
 				}
-				getLayer(){
-					this.currentScript=this.scriptGetter(this,this.sprite);//stopThis,
-					return this.currentScript;
-				}
-				onLoad(){
-					this.currentScript=this.currentScript||this.scriptGetter(()=>this.onDelete(),this,this.sprite);
-					this.currentLayer=this.currentLayer||this.eventGetter(mainGame.layers,this,this.sprite);
-					this.currentLayer.add(this);
+				detach(){
+					this.isDeleting=true;
+					this.deleter();
 					return this;
 				}
 				onUpdate(){
-					let i=this.currentScript;
+					let i=this.script;
 					if(!i){}
-					else if(typeof i=='function')i();
-					else if(i.next)i.next();//if(i.next()?.done);
+					else if(typeof i=='function')this.isDeleting=i();
+					else if(i.next)return this.isDeleting=i.next().done;//if(i.next()?.done);
 					else if(i.onUpdate)i.onUpdate();
-				}
-				onDelete(){
-					this.deleter();
-					this.isDeleting=true;
-					return this;
+					else {
+						console.error(this);
+						alert("SCRIPT ERROR: failed to run update script");
+						throw "UScript Error: \""+typeof this.script+"\" isnt supported;"+
+						"\n failed to run UpdateScript";
+					}
 				}
 				[Symbol.iterator](){
 					return 
@@ -205,14 +226,6 @@ class MainGame{
 				}
 				//attach(sprite):sprite,layer,script
 			};
-			class UpdateScript{
-				hasLoaded=false;
-				get load(){return this.hasLoaded;}
-				set load(value){if(value)this.onload();else this.onUnload();}
-				isDeleting=false;
-				get start(){return !this.isDeleting;}
-				set start(value){if(value)this.onStart();else this.onDelete();}
-			}
 			this.UpdateLayer=class UpdateLayer extends Array{
 				i=-1;
 				isDeleting=false;
@@ -230,6 +243,7 @@ class MainGame{
 				//events
 					onUpdate(){
 						this.layerScript();
+						return this.isDeleting;
 					}
 					onDelete(){
 						if(this.i!=-1&&!this.isDeleting){
@@ -288,13 +302,17 @@ class MainGame{
 					for(let i=0;i<this.length;i++){
 						this.i=i;
 						let item=this[i];
-						if(!(item==undefined||item?.isDeleting)){
-							if(typeof item=='function')item(this);
-							else if(item.next)item.next(this);//if(i.next()?.done);
-							else if(item.onUpdate)item.onUpdate(this);
-						}
-						item=this[i];
-						if(item==undefined||item?.isDeleting){
+						let deleteScript=false;
+						if(!(item==undefined||item.isDeleting)){
+							if(typeof item=='function')deleteScript||=item(this,item);
+							else if(item.next)deleteScript||=item.next(this,item)?.done;//if(i.next()?.done);
+							else if(item.onUpdate)deleteScript||=item.onUpdate(this,item);
+							if(item==undefined)deleteScript=true;
+							else if(item.isDeleting){
+								deleteScript=true;
+							}
+						}else{deleteScript=true;}
+						if(deleteScript){
 							this.splice(i,1);
 							i--;
 						}
