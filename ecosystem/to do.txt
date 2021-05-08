@@ -21,28 +21,22 @@ current things to do:{
 		`{let a=new Space.Pos({vec:[1,2],mat:[[2,1],[3,4]],rel:"a",obj:"b"}),r=1<<20;console.time();for(let i=0;i<r){new Space.Pos(a)}console.timeEnd();}`
 	}
 	2:{
-		`gameLoop.js` - `UpdateScript`: add thinks to is to make them a little more usefull,
+		`gameLoop.js` - `UpdateScript`: add things to make them a little more usefull,
 	},
-	3:{
-		`world.js` - recreate `World`;
-		`World`:{
-			`World` is a DOM-like database for storing GameObjects instead of HTML elements.
-			doesnt HAVE to use any convensions/classes already made.
-		},
-	},
-	4:{
-		`gameBits.js` - `Space.Entity` : make `class Entity`,
-		Should contain a `Space.Pos` object. Entities can be attached to world chunks and makes deleting it simple.
-		Entities also move through portals.
-	}
 	5:{
 		`gameBits.js` - `Space.Sprite or just Sprite` : similar to Entity but with more script and costume support, scripts are deleted in Sprite.prototype.delete().
+	},
+	6:{
+		make creatures
 	}
 }
 
 
 eco.js - resetting system:{
-	save,load,
+	save,load
 }
+main menu;
+world.js - updateLayer&Script but for Chunk;
+class Sprite - put together Sprite;
 Camera class;
 add portals:cave portals

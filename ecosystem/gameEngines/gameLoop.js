@@ -15,144 +15,10 @@ class MainGame{
 			this.layers.update,
 			this.layers.draw,
 		];
+		this.time.deltaClamp={min:1/120,max:1/15};
 	}
 	construct_Classes(){
 		const mainGameObj=this;
-		//Version 0.1
-			//Version 0.1.0
-			this.UpdateScriptV1_0=class{
-				constructor(sprite=null,layer=undefined,layer_i=undefined,script=function(layer,layer_i){},addToList=false){//i.e. parent,UpdateLayer
-					this.isDeleting=false;
-					this.sprite=sprite;
-					this.layer=layer;
-					if(layer){
-						this.attachLayer(layer,layer_i);
-					}
-					this.script=script;
-					//add datachable
-					if(addToList&&sprite!=null)if(sprite.updateScriptList!=undefined){sprite.updateScriptList.push(this)}
-				}
-				attachLayer(layer=this.layer,layer_i){//attach to layer
-					if(typeof layer_i=='number'&&layer_i!=NaN){
-						layer.list[layer_i]=this;
-					}
-					else if(layer_i==undefined){
-						layer.list.push(this);
-					}
-
-				}
-				detachLayer(){//detach from Layer
-					this.isDeleting=true;//detaching is done by the UpdateLayer
-				}
-				attachScripts(){
-					this.attachLayer();
-				}
-				detachScripts(){
-					this.detachLayer();
-				}
-				isThisDeleting(layer,layer_i){
-					return this.isDeleting;//||this.layer!=layer;
-				}
-				onUpdate(layer,layer_i){
-					this.script(layer,layer_i);
-				}
-			};
-			//Version 0.1.1
-			this.UpdateScriptV1_1=class extends this.UpdateScriptV1_0{
-				constructor(getLayer=v=>null,itterScript=(function*(){})(),sprite,autoAdd){
-					let layer=getLayer;
-					if(typeof getLayer == 'function'){
-						layer=getLayer(mainGameObj.layers);
-					}
-					super(sprite,layer,undefined,itterScript,autoAdd);
-					if(typeof itterScript=='function')
-						this.onUpdate=function(layer,i,pos){
-							this.isDeleting=Boolean(this.script(layer,i,pos));
-							//if(returns false or 0){delete script}
-						}
-					else
-						this.onUpdate=function(layer,i,pos){
-							this.isDeleting=this.script.next(layer,i,pos).done;
-							//if(returns false or 0){delete script}
-						}
-					this.getLayer=getLayer;
-				}
-				attach(){
-					this.layer=this.getLayer(mainGameObj.layers);
-				}
-				detach(){
-					if(this.script.return){
-						try{
-							this.script.return();
-						}catch(error){
-							if(error.message!="already executing generator"){
-								throw error;
-							}
-						}
-						finally{
-							this.isDeleting=true;
-						}
-					}
-					else{
-						this.isDeleting=true;
-					}
-				}
-			};
-			//Version 0.1.2
-			const mainGame=this;
-			this.Script=this.UpdateScript;
-			//unfinished
-			this.Event=class{
-				constructor(){
-
-				}
-				get list(){return this;}
-				*[Symbol.iterator](){
-					const list=this;
-					while(list.length>0){
-						for(let i=0;i<list.length;i++){
-							let val=list[i].next();
-							if(val.done){list.splice(i,1);}
-						}
-					}
-				}
-			}
-			this.UpdateLayerV1_0=class{
-				constructor(onUpdate=()=>{this.layerScript();},list=[]){
-					this.onUpdate=onUpdate;
-					this.list=list;
-					this.isDeleting=false;
-				}
-				layerScript(){
-					let remove=false;
-
-					for (let i = 0; i < this.list.length; i++) {
-						if(this.list[i]==undefined)continue;
-						if(!this.list[i].isDeleting){//!(removing script)
-							this.list[i].onUpdate(this,i);
-							if(!this.list[i].isDeleting){
-								continue;
-							}
-						}
-						//else : remove script
-						this.list[i].isDeleting=false;
-						this.list.splice(i,1);
-						i--;
-					}
-				};
-			};
-			this.RefLinker=class{
-				constructor(){
-					this.a=null;
-					this.b=null;
-				}
-				detach(){
-
-				}
-				attach(){
-
-				}
-			};
 		//V2 0.2.1 gameEngine
 			const GeneratorFunction=(function*(){}).constructor;
 			this.UpdateScript=class UpdateScript{
@@ -173,7 +39,7 @@ class MainGame{
 					}
 					if(getScript instanceof GeneratorFunction){
 						this.getScript=getScript;
-						this.script=getScript(this);
+						this.script=getScript(this.layer,this);
 					}else{
 						this.getScript=()=>getScript;
 						this.script=getScript;
@@ -185,14 +51,14 @@ class MainGame{
 							//if(returns false or 0){delete script}
 						}
 					}
-					else{
+					else if(getScript instanceof GeneratorFunction){
 						this.onUpdate=function(layer,i,pos){
 							this.isDeleting=this.script.next(layer,i,pos).done;
 							if(this.isDeleting){this.detach();}
 							//if(returns false or 0){delete script}
 						}
 					}
-					this.attach();
+					if(autoLoad)this.attach();
 				}
 				attach(){
 					//this.layer=this.getLayer(mainGameObj.layers);
@@ -200,7 +66,7 @@ class MainGame{
 				}
 				detach(){
 					this.isDeleting=true;
-					this.deleter();
+					this.layer.delete(this);//this.deleter();
 					return this;
 				}
 				onUpdate(){
@@ -323,7 +189,7 @@ class MainGame{
 					this(scriptFunc);
 				}
 			};
-			this.makeScripts=function makeScripts(scripts){
+			this.makeScripts=function makeScripts(scripts,sprite=scripts){
 				for(let i in scripts){
 					if(scripts.hasOwnProperty(i)){
 						let s=scripts[i];
@@ -332,8 +198,9 @@ class MainGame{
 						}
 						else{
 							let s1=s instanceof Array?[s[0],s[1]]:
-							typeof s=='object'?[s.layer,s.script]:
-							scripts[i]=new mainGameObj.UpdateScript(s1[0],s1[1],false);
+							typeof s=='object'?[s.layer,s.script]:0;
+							if(s1==0)continue;
+							scripts[i]=new mainGameObj.UpdateScript(s1[0],s1[1].bind(sprite),false);
 						}
 					}
 				}
@@ -354,9 +221,10 @@ class MainGame{
 		this.mainLayers.draw.onUpdate=function(){
 			Draw.clear();
 			this.layerScript();
-			this.parent.time.startLoop();
-			this.parent.time.realDelta=this.parent.time.delta;
-			this.parent.time.delta=Math.clamp(1/120,1/15,this.parent.time.delta)
+			const time=this.parent.time;
+			time.startLoop();
+			time.realDelta=time.delta;
+			time.delta=Math.clamp(1/120,1/15,time.delta)
 		};
 		this.frameId=0;
 		this.i=0;
@@ -384,7 +252,7 @@ class MainGame{
 	construct_Vars(){
 		this.layers={};
 		this.updateOrder=[];
-		this.menuLayers={};//not yet by MainGame class
+		this.menuLayers={};//not yet used by MainGame class
 	}
 	start(){
 		this.endLoop=false;

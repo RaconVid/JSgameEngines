@@ -28,6 +28,16 @@
 			c[axisB] = coords[axisB]*Math.cos(angle)+carry*Math.sin(angle);
 			return(c);
 		}
+		Math.rotateh=function(coords,angle,axisA,axisB){
+			let c=[];
+			for(let i=0;i<coords.length;i++){
+				c.push(coords[i]);
+			}
+			var carry = coords[axisA];
+			c[axisA] = coords[axisA]*Math.cosh(angle)+coords[axisB]*Math.sinh(angle);
+			c[axisB] = coords[axisB]*Math.cosh(angle)+carry*Math.sinh(angle);
+			return(c);
+		}
 		Math.timesMat=function(a,b){//unfinished
 			let ans=[];
 			for (let i = 0; i < b.length; i++) {
@@ -318,4 +328,96 @@
 				*/
 		}
 	};
+	Math.Mat=class extends Array{
+		constructor(length){
+			super(...arguments);
+			//new mat(length);
+			if(arguments.length==1&&typeof arguments[0]=='number'){
+				for(let i=0;i<this.length;i++){
+					this[i]=new Array(this.length).fill(0);
+					this[i][i]=1;
+				}
+			}
+		}
+		determinant(){
+			return new this.constructor(this.inverse_findDet(inverse_findC()));
+		}
+		inverse_findDet(minorsC){//returns array
+			return minorsC[0].reduce((s,v,i)=>s+v*this[0][i],0);
+		}
+		inverse_findC(){//returns array
+			let minors=[];
+			for(let i=0;i<this.length;i++){
+				minors[i]=[];
+				for(let j=0;j<this[i].length;j++){
+					minors[i][j]=0;
+					let subMat=new this.constructor(0);
+					for(let y1=0;y1<this.length;y1++){
+						if(y1==i)continue;
+						minorMat.push([]);
+						for(let x1=0;x1<this[y1].length;x1++){
+							if(x1==j)continue;
+							minorMat[y1].push(this[y1][x1]);
+						}
+					}
+					minors[i][j]=subMat.determinant()*([1,-1][(i+j)%2]);
+				}
+			}
+			return minors;
+		}
+		inverse(){
+			let ansMat=this.inverse_findC();
+			//ansMat=C;
+			let det=this.inverse_findDet(minorsC);
+			for(let i=0;i<this.length;i++){//ansMat=C^T
+				for(let j=0;j<this.length;j++){
+					let carry=ansMat[i][j];
+					ansMat[i][j]=ansMat[j][i];
+					ansMat[j][i]=carry;
+				}
+			}
+			return (new this.constructor(...minorsC));
+		}
+		mul(mat){
+			let matA=this,matB=mat,ans=[];
+			for(let i=0;i<matB.length;i++){
+				ans[i]=[];
+				for(let j=0;j<matA[i].length;j++){
+					ans[i][j]=0;
+					for(let j1=0;j1<matA.length;j1++){
+						ans[i][j]+=matB[i][j1]*matA[j1][j];
+					}
+				}
+			}
+			return (new this.constructor(...ans))//.add(ans);
+		}
+	}
+	Math.Gvec=function(vec,curve=-1){
+		let len=Math.len(vec);
+		if(curve!=0)len*=Math.sqrt(Math.abs(curve));
+		let ans=new Math.Mat(vec.length+1);
+		let vec1=vec;
+		let rots=[];
+		for(let i=0;i<vec.length-1;i++){
+			let angle=Math.getAngle(vec1,0,i+1);
+			for(let j=0;j<ans.length;j++){
+				ans[j]=Math.rotate(ans[j],angle,i+2,1);
+			}
+			vec1=Math.rotate(vec1,angle,i+1,0);
+			rots.unshift(angle);
+		}
+		for(let j=0;j<ans.length;j++){
+			if(curve<0)ans[j]=Math.rotateh(ans[j],len,0,1);
+			else if(curve>0)ans[j]=Math.rotate(ans[j],len,0,1);
+			else ans[j]=ans[j][j];
+		}
+		for(let i=0;i<vec.length-1;i++){
+			let angle=rots[i];
+			for(let j=0;j<ans.length;j++){
+				ans[j]=Math.rotate(ans[j],angle,0,i+2);
+			}
+			vec1=Math.rotate(vec1,angle,0,i+1);
+		}
+		return ans;
+	}
 }

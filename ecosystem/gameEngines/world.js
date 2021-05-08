@@ -1,8 +1,8 @@
-let world;
+var world;
 //{
 	class World {
 		constructor(){
-			this.chunk1=new Chunk();
+			this.chunk1=new Chunk([0,0]);//default chunk;
 		}
 		get Chunk(){return Chunk;}
 		get Entity(){return Entity;}
@@ -12,9 +12,10 @@ let world;
 		static Portal;
 	};
 	class Chunk{
-		constructor(coords=[0,0],scale=400){//scale=diamiter
-			this.debug_XY=[...coords];
+		constructor(coords=undefined,scale=400){//scale=diamiter
+			if(coords)this.debug_XY=[...coords];
 			this.coords=coords.map(v=>v*scale);
+			this.scale=scale;
 			//this.freeIds=[];
 			//this.usedIds=[];//using lazy way
 			this.list=[];//list of all objects in chunk
@@ -80,7 +81,13 @@ let world;
 			}
 			else{
 				for(let i=0;i<this.chunks.length;i++){
-					this.chunks[i].detach(this.parentObj);
+					if(this.chunks[i] instanceof Array){//layer on chunk
+						let index=this.chunks[i].indexOf(this);
+						if(index!=-1){
+							this.chunks[i].splice(index,1);
+						}
+					}
+					else this.chunks[i].detach(this.parentObj);
 				}
 			}
 			return this;//for pipelineing
