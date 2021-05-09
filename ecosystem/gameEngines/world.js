@@ -70,7 +70,10 @@ var world;
 			}
 			else{
 				for(let i=0;i<this.chunks.length;i++){
-					this.chunks[i].attach(this.parentObj);
+					if(this.chunks[i] instanceof Array){//layer on chunk
+						this.chunks[i].push(this);
+					}
+					else this.chunks[i].attach(this.parentObj);
 				}
 			}
 			return this;//for pipelineing

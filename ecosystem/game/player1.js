@@ -1,8 +1,10 @@
-player1:{
+player1:{for(let III=0;III<2;III++){const II=III;
 	let mg=mainGame;
 	let sprite={};
 	sprite=world.chunk1.newEntity();
-	sprite.chunks=[world.chunk1,world.chunk1];
+	//sprite.chunks=[world.chunk1,world.chunk1.colliders];
+	//sprite.attach();
+	sprite.coords=[0,II*10];
 	Object.assign(sprite,{
 		scripts:mg.makeScripts({
 			start:{
@@ -10,6 +12,7 @@ player1:{
 				script(layer,script){
 					this.scripts.main.attach();
 					this.scripts.camera1.attach();
+					this.scripts.collider.attach();
 					return true;
 				},
 			},
@@ -20,7 +23,7 @@ player1:{
 					this.coords=Math.addVec2(
 						this.coords,
 						Math.scaleVec2(
-							Inputs.joysticks[1].vec2,
+							Inputs.joysticks[II].vec2,
 							speed*mg.time.delta
 						)
 					);
@@ -35,9 +38,15 @@ player1:{
 						size:this.collider.size,
 						direction:[0,1],
 					};
+					let marchData={
+					};
 					for(let i=0;i<view.length;i++){
 						if(view[i]&&view[i].collider&&view[i]!=this){
-							view[i].collider.getDist(ray);
+							marchData=view[i].collider.getRayMarchData(ray);
+							if(marchData.intersect){
+								this.coords=Math.addVec2(this.coords,Math.scaleVec2(marchData.normal,Math.abs(marchData.dist)/2 ));
+								view[i].coords=Math.addVec2(view[i].coords,Math.scaleVec2(marchData.normal,-Math.abs(marchData.dist)/2 ));
+							}
 						}else continue;
 					}
 				},
@@ -68,20 +77,43 @@ player1:{
 		},sprite),
 		collider:{
 			size:10,
-			//ray={coords:[0,0],size:10,direction:[1,0]}
-			getIntersect(ray):function(ray){
+			rayIn:{
+				coords:[0,0],
+				size:10,
+				direction:[1,0]
+			},
+			rayOut:{
+				dist:Infinity,
+				intersect:false,
+				normal:[0,1],
+				coords:[0,0],
+			},
+			getRayMarchData:function(ray){
+				let dif=Math.dif2(ray.coords,this.coords);
+				let dist=Math.len2(dif);
+				let normalVector=Math.scaleVec2(dif,1/dist);
+				dist-=(ray.size+this.collider.size);
+				let normalPosition=Math.addVec2(this.coords,Math.scaleVec2(normalVector,this.collider.size));
+				return{
+					intersect:dist<0,
+					dist:dist,
+					normal:normalVector,
+					coords:normalPosition,
+				};
+			}.bind(sprite),
+			getIntersect:function(ray){
 				return 1;
 			}.bind(sprite),
 			getDist:function(ray){
-				return Math.len2(this.coords,ray.coords)-(ray.size+this.collider.size);
+				return Math.len2(dif)-(ray.size+this.collider.size);
 			}.bind(sprite),
-			getNormal(ray):function(ray){
-				return 1;
+			getNormal:function(ray){
+				return [];
 			}.bind(sprite),
-			getPathDist(ray):function(ray){
+			getPathDist:function(ray){
 				return 1;
 			}.bind(sprite),
 		},
 	});
 	sprite.scripts.start.attach();
-}
+}}
