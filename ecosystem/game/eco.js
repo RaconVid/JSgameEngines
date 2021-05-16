@@ -1,18 +1,19 @@
+//19:16
 {
-	var mainGame;{
-		mainGame = new MainGame();
+	{
+		MainGame;
 		//
-		mainGame.layers={
-			update:mainGame.mainLayers.update,
-			draw:mainGame.mainLayers.draw,
-			//physics:new mainGame.UpdateLayer(16)//use l=>l.physics[0 to 15]
+		MainGame.layers={
+			update:MainGame.mainLayers.update,
+			draw:MainGame.mainLayers.draw,
+			//physics:new MainGame.UpdateLayer(16)//use l=>l.physics[0 to 15]
 		};
-		mainGame.updateOrder=[
-			mainGame.layers.update,
-			//mainGame.layers.physics,
-			mainGame.layers.draw,
+		MainGame.updateOrder=[
+			MainGame.layers.update,
+			//MainGame.layers.physics,
+			MainGame.layers.draw,
 		];
-	}let mg=mainGame;
+	}let mg=MainGame;
 	{
 		world.chunk1.colliders=[];
 	}
@@ -47,8 +48,8 @@
 		};
 		Inputs.joysticks=joysticks;
 	};
-
 }
 importJavascriptFromSrc(
-	"game/player1.js"
-);mainGame.start();
+	"game/player1.js",
+	"game/template.js"
+);MainGame.start();

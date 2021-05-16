@@ -178,48 +178,53 @@ const Space={
 		//	return this.obj.set(pos.sub(this.rel));
 		//}
 	};Space.RelPos=RelPos;
-}{
-	Space.Chunk=class Chunk extends Set{//array of Space.Pos({rel:chunk,obj:entity});
-		chunkSymbol=this.constructor.chunkSymbol;
-		constructor(setAry){
-			super(setAry);
-		}
-		*viewSearch(radius,camPos=new Pos({obj:null,rel:this})){
-			//let pos =new Pos({obj:this});
-			for(let pos of this){
-				let newPos=camPos.addR(pos);
-				yield [newPos.obj,newPos];
-				if(this.chunkSymbol in newPos){//viewSearch entity
-					yield*viewSearch(radius,newPos)
+}
+{
+	let mg=window.mainGame||MainGame;
+	function Sprite(sprite={}){//UpdateModule == EntityModule
+		//entity;entities;scripts,coords;
+		Object.defineProperties(this,Object.getOwnPropertyDescriptors(sprite));
+		Object.defineProperties(this,Object.getOwnPropertyDescriptors(this.values||{}));
+		let spriteData1=this;
+		this.entity=new Entity(this);
+		this.entity.chunks.push(world.chunk1);
+		this.entities=new mg.UpdateModule([this.entity]);
+		const parsed=(objs)=>{//parseScripts
+			let parsed=mg.makeScripts(objs||{},this);
+			scriptsSet=new mg.UpdateModule();
+			for(let i in parsed){
+				if(parsed[i].isAttached){
+					scriptsSet.add(parsed[i].detach());
 				}
 			}
+			Object.assign(scriptsSet,parsed);
+			return scriptsSet;
 		}
-		static chunkSymbol=Symbol("chunk");
+		this.scripts=parsed(this.scripts);
+		this.costumes=parsed(this.costumes);
+		this.parts=new mg.UpdateModule([
+			this.scripts,
+			this.entities,
+			this.costumes,
+		]);
+		let start=this.scripts.Start;
+		this.OnStart?.();
 	};
-	class Sprite{
-		constructor(){
+	Sprite.prototype={
+		attach(){for(let i of this.parts)i.attach();return this;},
+		detach(){for(let i of this.parts)i.detach();return this;},
 
-		}
-	}Space.Sprite=Sprite;
-}if(0){//HyperbolicSpace extends Space
-	class PosH extends Space.Pos{
-		constructor(){
+	};
+	Sprite.dataPrototype={//contains keywords
+		OnStart(){
 
-		}
-		static getPos(coords,velocity,hyperbolicness=1){
-			let len=Math.hypot(...velocity);
-			if(len==0)return coords;
-			let hyp=hyperbolicness*len;
-			return [
-				[
-					[Math.cosh(hyp)*coords[0]+Math.sinh(hyp)*velocity[0]/len],
-					[Math.cosh(hyp)*coords[1]+Math.sinh(hyp)*velocity[1]/len]
-				],
-				[
-					[Math.sinh(hyp)*coords[0]+Math.cosh(hyp)*velocity[0]/len],
-					[Math.sinh(hyp)*coords[1]+Math.cosh(hyp)*velocity[1]/len]
-				],
-			];
-		}
-	}
+		},
+		scripts:{
+			
+		},
+		costumes:{
+			
+		},
+	};
+	Space.Sprite=Sprite;
 }

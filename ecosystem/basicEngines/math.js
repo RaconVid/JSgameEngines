@@ -328,7 +328,7 @@
 				*/
 		}
 	};
-	Math.Mat=class extends Array{
+	{let mat=class Mat extends Array{
 		constructor(length){
 			super(...arguments);
 			//new mat(length);
@@ -391,7 +391,17 @@
 			}
 			return (new this.constructor(...ans))//.add(ans);
 		}
-	}
+		rot(angle,axisA,axisB){
+			for(let i=0;i<this.length;i++){
+				Math.rotate(this[i],angle,axisA,axisB);
+			}
+		}
+		roth(angle,axisA,axisB){
+			for(let i=0;i<this.length;i++){
+				Math.rotateh(this[i],angle,axisA,axisB);
+			}
+		}
+	};Math.Mat=function(){return new mat(...arguments);}}
 	Math.Gvec=function(vec,curve=-1){
 		let len=Math.len(vec);
 		if(curve!=0)len*=Math.sqrt(Math.abs(curve));
@@ -409,15 +419,17 @@
 		for(let j=0;j<ans.length;j++){
 			if(curve<0)ans[j]=Math.rotateh(ans[j],len,0,1);
 			else if(curve>0)ans[j]=Math.rotate(ans[j],len,0,1);
-			else ans[j]=ans[j][j];
+			else ans[j][1]+=len*ans[j][0];//[[1,len],[0,1]]
 		}
 		for(let i=0;i<vec.length-1;i++){
 			let angle=rots[i];
 			for(let j=0;j<ans.length;j++){
-				ans[j]=Math.rotate(ans[j],angle,0,i+2);
+				ans[j]=Math.rotate(ans[j],angle,1,i+2);
 			}
 			vec1=Math.rotate(vec1,angle,0,i+1);
 		}
+		//round answer
+		//ans=ans.map(v=>v.map(v=>(v*(1<<16)|0)/(1<<16)))
 		return ans;
 	}
 }

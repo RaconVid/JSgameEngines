@@ -1,10 +1,19 @@
 "use strict";
-class MainGame{
+class GameLoopEngine{
+	static init(){
+		window.MainGame=new this;
+		window.mg=MainGame;
+		return MainGame;
+	}
+	init(){
+		return this;
+	}
 	constructor(){
 		this.construct_Classes();
 		this.construct_Consts();
 		this.construct_Vars();
 		this.construct_defaultSettings();
+		//window.MainGame=new GameLoopEngine();
 	}
 	construct_defaultSettings(){
 		this.layers={
@@ -19,31 +28,35 @@ class MainGame{
 	}
 	construct_Classes(){
 		const mainGameObj=this;
+		//version numbers are baced on bacwards compatibillity
 		//V2 0.2.1 gameEngine
 			const GeneratorFunction=(function*(){}).constructor;
-			this.UpdateScript=class UpdateScript{
+			this.UpdateScript=class UpdateScriptV_1_4{
 				script=()=>{return false;};
 				layer;
-				//getScript;
-				//getLayer;
+				//scriptGetter;
+				//layerGetter;
+				isAttached=false;
 				isDeleting=false;
 				constructor(getLayer,getScript,autoLoad=true){
 					//note: getLayer=(l)=>l.update[8]
 					//note: getScript=function/iterator/generator
 					if(typeof getLayer == 'function'){
-						this.getLayer=getLayer;
+						this.layerGetter=getLayer;
 						this.layer=getLayer(mainGameObj.layers);
 					}else{
-						this.getLayer=()=>getLayer;
+						this.layerGetter=()=>getLayer;
 						this.layer=getLayer;
 					}
+
 					if(getScript instanceof GeneratorFunction){
-						this.getScript=getScript;
+						this.scriptGetter=getScript;
 						this.script=getScript(this.layer,this);
 					}else{
-						this.getScript=()=>getScript;
+						this.scriptGetter=()=>getScript;
 						this.script=getScript;
 					}
+
 					if(typeof this.script=='function'){
 						this.onUpdate=function(layer,i,pos){
 							this.isDeleting=Boolean(this.script(layer,i,pos));
@@ -60,13 +73,35 @@ class MainGame{
 					}
 					if(autoLoad)this.attach();
 				}
+				getLayer(getLayer=this.layerGetter){
+					if(typeof getLayer == 'function'){
+						this.getLayer=getLayer;
+						this.layer=getLayer(mainGameObj.layers);
+					}else{
+						this.getLayer=()=>getLayer;
+						this.layer=getLayer;
+					}
+				}
+				getScript(getScript=this.scriptGetter){
+					if(getScript instanceof GeneratorFunction){
+						this.scriptGetter=getScript;
+						this.script=getScript(this.layer,this);
+					}else{
+						this.scriptGetter=()=>getScript;
+						this.script=getScript;
+					}
+				}
 				attach(){
 					//this.layer=this.getLayer(mainGameObj.layers);
-					this.layer.add(this);return this;
+					this.layer.add(this);
+					this.isAttached=true;
+					this.isDeleting=false;
+					return this;
 				}
 				detach(){
 					this.isDeleting=true;
 					this.layer.delete(this);//this.deleter();
+					this.isAttached=false;
 					return this;
 				}
 				onUpdate(){
@@ -92,7 +127,7 @@ class MainGame{
 				}
 				//attach(sprite):sprite,layer,script
 			};
-			this.UpdateLayer=class UpdateLayer extends Array{
+			this.UpdateLayer=class UpdateLayerV_1_1 extends Array{
 				i=-1;
 				isDeleting=false;
 				constructor(length=16){
@@ -189,7 +224,16 @@ class MainGame{
 					this(scriptFunc);
 				}
 			};
-			this.makeScripts=function makeScripts(scripts,sprite=scripts){
+			this.UpdateModule=class UpdateModuleV_1_0 extends Set{
+				//add,delete,size,for(i of this)
+				//get length(){return this.size};
+				constructor(activeScripts=[]){
+					super(activeScripts);
+				}
+				attach(){for(let i of this){i.attach();}return this;}
+				detach(){for(let i of this){i.detach();}return this;}
+			};
+			this.makeScripts=function makeScriptsV_1_0(scripts,sprite=scripts){
 				for(let i in scripts){
 					if(scripts.hasOwnProperty(i)){
 						let s=scripts[i];
@@ -197,15 +241,15 @@ class MainGame{
 							scripts[i]=s;
 						}
 						else{
-							let s1=s instanceof Array?[s[0],s[1]]:
-							typeof s=='object'?[s.layer,s.script]:0;
+							let s1=s instanceof Array?[s[0],s[1],s[2]]:
+							typeof s=='object'?[s.layer,s.script,s.attach]:0;
 							if(s1==0)continue;
-							scripts[i]=new mainGameObj.UpdateScript(s1[0],s1[1].bind(sprite),false);
+							scripts[i]=new mainGameObj.UpdateScript(s1[0],s1[1].bind(sprite),s1[2]);
 						}
 					}
 				}
 				return scripts;
-			}
+			};
 	}
 	construct_Consts(){
 		this.time=new Time();
@@ -265,4 +309,4 @@ class MainGame{
 			Draw.clear();
 		});
 	}
-};
+};GameLoopEngine.init();
