@@ -1,6 +1,8 @@
 "use strict";
 {//Math
 	Math.TAU=Math.PI*2;
+	window.Maths=Math;
+	Math.toString=function(){return "Math but better"}
 	{//getAngle
 		Math.getAngle=function(coords,axisA,axisB){
 			/*while(coords.length-Math.max(axisA,axisB)>0){
@@ -280,6 +282,10 @@
 				this[1]=y;
 			}
 		}
+		set(val){
+			this[0]=val[0];
+			this[1]=val[1];
+		}
 		//add
 			static add(vecA,vecB){
 				return (typeof vecB[0]=="number")
@@ -330,13 +336,24 @@
 	};
 	{let mat=class Mat extends Array{
 		constructor(length){
-			super(...arguments);
 			//new mat(length);
 			if(arguments.length==1&&typeof arguments[0]=='number'){
+				super(length);
 				for(let i=0;i<this.length;i++){
 					this[i]=new Array(this.length).fill(0);
 					this[i][i]=1;
 				}
+			}
+			//new mat(a,b) => a by b matrix;
+			else if(arguments.length==2&&typeof arguments[0]=='number'&&typeof arguments[1]=='number'){
+				super(length);
+				for(let i=0;i<this.length;i++){
+					this[i]=new Array(arguments[1]).fill(0);
+					this[i][i]=1;
+				}
+			}
+			else{
+				super(...arguments);
 			}
 		}
 		determinant(){
@@ -392,19 +409,22 @@
 			return (new this.constructor(...ans))//.add(ans);
 		}
 		rot(angle,axisA,axisB){
+			let ans=Math.Mat(this.length);
 			for(let i=0;i<this.length;i++){
-				Math.rotate(this[i],angle,axisA,axisB);
-			}
+				ans[i]=Math.rotate(this[i],angle,axisA,axisB);
+			}return ans;
 		}
 		roth(angle,axisA,axisB){
+			let ans=Math.Mat(this.length);
 			for(let i=0;i<this.length;i++){
-				Math.rotateh(this[i],angle,axisA,axisB);
+				ans[i]=Math.rotateh(this[i],angle,axisA,axisB);
 			}
 		}
 	};Math.Mat=function(){return new mat(...arguments);}}
 	Math.Gvec=function(vec,curve=-1){
 		let len=Math.len(vec);
-		if(curve!=0)len*=Math.sqrt(Math.abs(curve));
+		let lenScale=Math.sqrt(Math.abs(curve));
+		if(curve!=0)len*=lenScale;
 		let ans=new Math.Mat(vec.length+1);
 		let vec1=vec;
 		let rots=[];
@@ -420,7 +440,7 @@
 			if(curve<0)ans[j]=Math.rotateh(ans[j],len,0,1);
 			else if(curve>0)ans[j]=Math.rotate(ans[j],len,0,1);
 			else ans[j][1]+=len*ans[j][0];//[[1,len],[0,1]]
-		}
+		}if(curve!=0)ans[0][1]/=lenScale;
 		for(let i=0;i<vec.length-1;i++){
 			let angle=rots[i];
 			for(let j=0;j<ans.length;j++){

@@ -12,7 +12,7 @@ class IOEngine{
 		//Draw.canvasObj.height=360;
 	}
 	constructor(){
-		this.Draw=class{
+		this.Draw=class DrawClass{
 			constructor(){
 				this.circles=true;
 				this.htmlObject=null;
@@ -124,7 +124,7 @@ class IOEngine{
 				window.onresize();
 			}
 		};
-		this.Inputs=class{
+		this.Inputs=class InputsClass{
 			constructor(htmlObject){
 				this.Mouse=class{
 					constructor(){
@@ -146,7 +146,7 @@ class IOEngine{
 						}
 					}
 				};
-				this.Key=class{
+				this.Key=class Key{
 					constructor({downVal=false,onDown=false,onUp=false}={downVal:false,onDown:false,onUp:false}){
 						this.downVal=downVal;
 						this.onDown=onDown;
@@ -165,9 +165,40 @@ class IOEngine{
 						this.onDown=onDown;
 						this.onUp=onUp;
 					}
-				}
+				};
+				this.keys={//note: keys is like new Map()
+					current:false,
+					KeysWASD:this.MovementKeys[0],
+					KeysArrow:this.MovementKeys[1],
+					KeysBoth:this.MovementKeys[2],
+					//will contain other keys
+				};
 				this.mouse=new this.Mouse();
-				this.keys={current:false};
+				this.MovementKeys;{
+					let inputsObj=this;
+					this.MovementKeys=class MoveKeys extends this.Key{
+						constructor(...keys){
+							super();
+							this.keys=keys.map(v=>inputsObj.getKey(v));
+							//this.keyNames=[...keys];
+							Object.defineProperties(this[2],{vec2:{get(){
+								let vec0=joysticks[0].vec2;
+								let vec1=joysticks[1].vec2;
+								return [
+									Math.clamp(vec0[0]+vec1[0],-1,1),
+									Math.clamp(vec0[1]+vec1[1],-1,1),
+								];
+							}}});
+						}
+						//vec2Val=Math.vec2(0,0);
+						get vec2(){
+							return Math.vec2(this.keys[3].down-this.keys[1].down,-(this.keys[0].down-this.keys[2].down));
+						},
+						static [0]=new this('KeyW','KeyA','KeyS','KeyD');
+						static [1]=new this('ArrowUp','ArrowLeft','ArrowDown','ArrowRight');
+						static [2]=new this('KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight');
+					};
+				}
 				this.htmlObject=htmlObject;//canvas
 			}
 			start(htmlObject=this.htmlObject){
