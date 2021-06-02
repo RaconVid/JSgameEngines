@@ -30,8 +30,7 @@ current things to do:{
 		make creatures
 	}
 }
-
-
+use UpdateScripts&&Layers for world.js; 
 eco.js - resetting system:{
 	save,load
 }

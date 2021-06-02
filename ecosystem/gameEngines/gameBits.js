@@ -180,17 +180,17 @@ const Space={
 	};Space.RelPos=RelPos;
 }
 {
-	let mg=window.mainGame||MainGame;
+	let mg=window.mainGame??MainGame;
 	function Sprite(sprite={}){//UpdateModule == EntityModule
 		//entity;entities;scripts,coords;
 		Object.defineProperties(this,Object.getOwnPropertyDescriptors(sprite));
-		Object.defineProperties(this,Object.getOwnPropertyDescriptors(this.values||{}));
+		//Object.defineProperties(this,Object.getOwnPropertyDescriptors(this.values||{}));
 		let spriteData1=this;
 		this.entity=new Entity(this);
 		this.entity.chunks.push(world.chunk1);
 		this.entities=new mg.UpdateModule([this.entity]);
 		const parsed=(objs)=>{//parseScripts
-			let parsed=mg.makeScripts(objs||{},this);
+			let parsed=mg.makeScripts(objs??{},this);
 			scriptsSet=new mg.UpdateModule();
 			for(let i in parsed){
 				if(parsed[i].isAttached){
@@ -211,20 +211,21 @@ const Space={
 		this.OnStart?.();
 	};
 	Sprite.prototype={
-		attach(){for(let i of this.parts)i.attach();return this;},
-		detach(){for(let i of this.parts)i.detach();return this;},
-
+		attach(){this.parts.attach();return this},//for(let i of this.parts)i.attach();return this;},
+		detach(){this.parts.detach();return this},//for(let i of this.parts)i.detach();return this;},
 	};
 	Sprite.dataPrototype={//contains keywords
-		OnStart(){
-
-		},
-		scripts:{
-			
-		},
-		costumes:{
-			
-		},
+		OnStart(){},
+		scripts:{},
+		costumes:{},
+	};
+	Sprite.objectPrototype={//contains keywords
+		//OnStart(){},
+		entity:null,//new Entity(),
+		parts:new Set(),//new mg.UpdateModule(),
+		entities:new Set(),//new mg.UpdateModule(),
+		scripts:new Set(),//new mg.UpdateModule(),
+		costumes:new Set(),//new mg.UpdateModule(),
 	};
 	Space.Sprite=Sprite;
 }

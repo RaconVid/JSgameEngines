@@ -31,19 +31,25 @@ class GameLoopEngine{
 		//version numbers are baced on bacwards compatibillity
 		//V2 0.2.1 gameEngine
 			const GeneratorFunction=(function*(){}).constructor;
-			this.UpdateScript=class UpdateScriptV_1_4{
+			this.UpdateScript=class UpdateScriptV_1_4{//might be V_1_3 idk
 				script=()=>{return false;};
 				layer;
 				//scriptGetter;
 				//layerGetter;
 				isAttached=false;
 				isDeleting=false;
+				static get layers(){return this.layers=mainGameObj.layers;}
+				static set layers(value){
+					Object.defineProperties(this,Object.getOwnPropertyDescriptors({
+						layers:value,
+					}));
+				}
 				constructor(getLayer,getScript,autoLoad=true){
 					//note: getLayer=(l)=>l.update[8]
 					//note: getScript=function/iterator/generator
 					if(typeof getLayer == 'function'){
 						this.layerGetter=getLayer;
-						this.layer=getLayer(mainGameObj.layers);
+						this.layer=getLayer(this.constructor.layers);
 					}else{
 						this.layerGetter=()=>getLayer;
 						this.layer=getLayer;
@@ -73,7 +79,7 @@ class GameLoopEngine{
 					}
 					if(autoLoad)this.attach();
 				}
-				getLayer(getLayer=this.layerGetter){
+				setLayer(getLayer=this.layerGetter){
 					if(typeof getLayer == 'function'){
 						this.getLayer=getLayer;
 						this.layer=getLayer(mainGameObj.layers);
@@ -81,8 +87,9 @@ class GameLoopEngine{
 						this.getLayer=()=>getLayer;
 						this.layer=getLayer;
 					}
+					return this;
 				}
-				getScript(getScript=this.scriptGetter){
+				setScript(getScript=this.scriptGetter){
 					if(getScript instanceof GeneratorFunction){
 						this.scriptGetter=getScript;
 						this.script=getScript(this.layer,this);
@@ -90,6 +97,7 @@ class GameLoopEngine{
 						this.scriptGetter=()=>getScript;
 						this.script=getScript;
 					}
+					return this;
 				}
 				attach(){
 					//this.layer=this.getLayer(mainGameObj.layers);
@@ -116,9 +124,10 @@ class GameLoopEngine{
 						throw "UScript Error: \""+typeof this.script+"\" isnt supported;"+
 						"\n failed to run UpdateScript";
 					}
+					return this.isDeleting;
 				}
 				[Symbol.iterator](){
-					return 
+					return ;
 				}
 			};
 			this.Script=class Script extends this.UpdateScript{
@@ -230,6 +239,7 @@ class GameLoopEngine{
 				constructor(activeScripts=[]){
 					super(activeScripts);
 				}
+				parse(){for(let i of this){mainGameObj.makeScripts([i],this)[0];}return this;}
 				attach(){for(let i of this){i.attach();}return this;}
 				detach(){for(let i of this){i.detach();}return this;}
 			};
@@ -250,6 +260,18 @@ class GameLoopEngine{
 				}
 				return scripts;
 			};
+			this.makeScript=function makeScriptV_1_0(script,sprite={}){
+				let s=script;
+				if(s.onUpdate){//i.e. s instanceof UpdateScript||UpdateLayer 
+					return s;
+				}
+				else{
+					let s1=s instanceof Array?[s[0],s[1],s[2]]:
+					typeof s=='object'?[s.layer,s.script,s.attach]:0;
+					if(s1==0)return s;
+					return new mainGameObj.UpdateScript(s1[0],sprite?s1[1]:s1[1].bind(sprite),s1[2]);
+				}
+			}
 	}
 	construct_Consts(){
 		this.time=new Time();

@@ -17,3 +17,4 @@ importJavascriptFromSrc.baseSrc="";
 //importJavascriptFromSrc(
 //	"game/player1.js"
 //);
+var globalEval=(exp)=>eval(exp);

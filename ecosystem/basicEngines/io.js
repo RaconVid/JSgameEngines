@@ -21,6 +21,8 @@ class IOEngine{
 				this.width=640;
 				this.height=360;
 				this.scale=1;
+				this.center=[this.width/2,this.height/2];
+				if(Math.Vector2){this.center=new Math.Vector2(this.center);}
 			}
 			transform(pos){
 				ctx.transform(
@@ -46,6 +48,14 @@ class IOEngine{
 					pos.mat[1][1]/det,
 					0,0,
 				);
+			}
+			Text({x=0,y=0,text,font="sans-serif",size=10,color="white",align="center"}){
+				return function printText(){
+					ctx.font=size+"px"+font;
+					ctx.fillStyle=color;
+					ctx.textAlign=align;
+					ctx.fillText(text,x,y);
+				};
 			}
 			circle(x,y,size,colour){	
 				ctx.fillStyle = colour;//green
@@ -168,37 +178,40 @@ class IOEngine{
 				};
 				this.keys={//note: keys is like new Map()
 					current:false,
-					KeysWASD:this.MovementKeys[0],
-					KeysArrow:this.MovementKeys[1],
-					KeysBoth:this.MovementKeys[2],
 					//will contain other keys
 				};
 				this.mouse=new this.Mouse();
+				//note: to do: add more features to Joysticks
 				this.MovementKeys;{
-					let inputsObj=this;
-					this.MovementKeys=class MoveKeys extends this.Key{
+					let inputsObj=window.Inputs??this;
+					this.MovementKeys=class Joystick extends this.Key{
 						constructor(...keys){
 							super();
 							this.keys=keys.map(v=>inputsObj.getKey(v));
 							//this.keyNames=[...keys];
-							Object.defineProperties(this[2],{vec2:{get(){
-								let vec0=joysticks[0].vec2;
-								let vec1=joysticks[1].vec2;
-								return [
-									Math.clamp(vec0[0]+vec1[0],-1,1),
-									Math.clamp(vec0[1]+vec1[1],-1,1),
-								];
-							}}});
 						}
 						//vec2Val=Math.vec2(0,0);
 						get vec2(){
 							return Math.vec2(this.keys[3].down-this.keys[1].down,-(this.keys[0].down-this.keys[2].down));
-						},
+						}
+						get down(){
+							return this.keys[3].down||this.keys[1].down||this.keys[0].down||this.keys[2].down;
+						}
 						static [0]=new this('KeyW','KeyA','KeyS','KeyD');
 						static [1]=new this('ArrowUp','ArrowLeft','ArrowDown','ArrowRight');
-						static [2]=new this('KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight');
+						static [2]=Object.defineProperties(
+							new this('KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'),
+							{vec2:{get(){
+								return Math.vec2((this.keys[3].down||this.keys[7].down)-(this.keys[1].down||this.keys[5].down),-((this.keys[0].down||this.keys[4].down)-(this.keys[2].down||this.keys[6].down)));
+							}},down:{get(){
+								return this.keys[3].down||this.keys[1].down||this.keys[0].down||this.keys[2].down||this.keys[7].down||this.keys[5].down||this.keys[4].down||this.keys[6].down;
+							}}}
+						);
 					};
 				}
+				this.keys.KeysWASD=this.MovementKeys[0];
+				this.keys.KeysArrow=this.MovementKeys[1];
+				this.keys.KeysBoth=this.MovementKeys[2];
 				this.htmlObject=htmlObject;//canvas
 			}
 			start(htmlObject=this.htmlObject){
@@ -290,5 +303,6 @@ class IOEngine{
 		};
 	}
 }
-
 (new IOEngine()).start();
+//if(document.body){(new IOEngine()).start();}
+//else document.onload=function(){(new IOEngine()).start();}
