@@ -4,71 +4,70 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>gravity</title>
 <script src="../basicEngines/extraFunctions1.js"></script>
-<script>importJavascriptFromSrc.baseSrc="../";</script>
-</head>
-<body>
-<script src="../basicEngines/_header.js"></script>
+<script src="../basicEngines/math.js"></script>
 <script>
 let user;
-let gvec,agvec,curve,points,simulateStep,endLoop,scale;
-window.onload=function(){
-	curve=-1;
-	scale=0.25;
-	gvec=(vec)=>Math.Gvec(vec.map(v=>v*scale),curve);
-	agvec=(mat)=>Math.aGvec(mat,curve).map(v=>v/scale);
+let gvec,agvec,curve,points,simulateStep,drawStep,endLoop,curve_scale;
+var startSim = function(){
+	MainGame.updateOrder=[MainGame.layers.update];
+	curve=1;
+	curve_scale=1/16;
+	gvec=(vec)=>Math.Gvec(vec.map(v=>v*curve_scale),curve);
+	agvec=(mat)=>Math.aGvec(mat,curve).map(v=>v/curve_scale);
 	points=[];gvec([1,2]);
 	user=new class{
+		speed=40;
+		deltaCoords00=gvec([0,0]);
 		deltaCoords=gvec([0,0]);
+		constructor(){
+			let inputs={
+				joystick:Inputs.getKey("KeysArrow"),
+			};
+			let scripts=[
+				new MainGame.UpdateScript(l=>l.update[8],()=>{
+					let joystick=inputs.joystick;
+					if(joystick.down){
+						let move=Math.scaleVec2(joystick.vec2,this.speed*MainGame.time.delta);
+						this.deltaCoords=this.deltaCoords.mul(gvec(Math.scaleVec2(move,-1)));
+					}
+					drawStep();
+				}),
+			];
+		}
 	};//S*U*s=V
 	simulateStep=function(particles=points,dt=0.1){
 		const p=particles;
-		let isDrawing=true, isProcessing=true;
+		let isDrawing=false, isProcessing=true;
 		let avgPoint=[0,0];let len=p.length;
+		let avgSpeed=[0,0];
 		for(let i=0;i<p.length;i++){
 			if(isNaN(p[i][0][0][0])){len--;continue;}
 		}
-		for(let i=0;i<p.length;i++){
+		if(0)for(let i=0;i<p.length;i++){
 			if(isNaN(p[i][0][0][i])){continue;}
-			avgPoint=Math.minusVec2(avgPoint,Math.scale(agvec(p[i][0]),0.5/len));
+			avgPoint=Math.minusVec2(avgPoint,Math.scale(agvec(p[i][0]),1/len));
+			avgSpeed=Math.minusVec2(avgPoint,Math.scale(agvec(p[i][0].mul(gvec(p[i][1])).div(p[i][0])),0.5/len));
 		}
-		avgPoint=gvec(avgPoint);
-		if(isDrawing){
-			Draw.clear();
-			ctx.save();
-			ctx.translate(...Draw.center);
-		}
+		avgPoint=gvec(avgPoint).mul(user.deltaCoords);
+		user.deltaCoords=user.deltaCoords00;
 		for(let i=0;i<p.length;i++){
 			let s=[];//displacement
-			if(isProcessing){
-				for(let j=0;j<p[i][2].length;j++){
-					s[j]=p[i][1][j]*dt+p[i][2][j]/2*(dt**2);//s=ut+1/2*at^2
-					p[i][1][j]=p[i][1][j]*(0.99**dt)+p[i][2][j]*dt;//v=u+at
-					p[i][2][j]=0;
-				}
-				p[i][0]=p[i][0].mul(gvec(s));
-				p[i][0]=avgPoint.mul(p[i][0]);
+			if(1){//possition correction
+				let s=agvec(p[i][0]);
+				let mat=gvec(Math.scaleVec2(s,-1)).mul(p[i][0]);
+				mat[1][0]=0;
+				let len=Math.hypot(...mat[1]);
+				mat[1]=Math.scale(mat[1],1/len);
+				mat[2]=[0,-mat[1][2],mat[1][1]];
+				p[i][0]=gvec(s).mul(mat);
 			}
-			if(isDrawing){
-				//for(let j of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,0],[0,1],[1,-1],[1,0],[1,1]]){
-					ctx.save();
-					let scale=8;
-					let size=scale/2*0.5+2;//(1+Math.Gvec.len(p[i][0]));
-					//ctx.translate(...Math.scaleVec2(j,scale*Math.TAU));
-					let moveGvec=gvec(
-						Math.dif2(Inputs.mouse.vec2,Draw.center).map((v,i)=>v/Math.hypot(...Draw.center)*8)
-					);
-					let coords=agvec(moveGvec.mul(p[i][0])).map(v=>v*scale);//coords.shift();
-					Draw.circle(coords[0],coords[1],size,"green");
-					coords.map(v=>(v/scale).toFixed(1))
-					//Draw.Text({text:p[i][2].map(v=>(v/scale).toFixed(1)),x:coords[0],y:coords[1]+size,align:"center",color:"white"})();
-					ctx.restore();
-				//}
+			for(let j=0;j<p[i][2].length;j++){
+				s[j]=p[i][1][j]*dt+p[i][2][j]/2*(dt**2);//s=ut+1/2*at^2
+				p[i][1][j]=p[i][1][j]+p[i][2][j]*dt;//v=u+at
+				p[i][2][j]=0;
 			}
-		}
-		if(isDrawing){
-			Draw.line(-5,0,5,0,1,"#FFFFFFC0");
-			Draw.line(0,-5,0,5,1,"#FFFFFFC0");
-			ctx.restore();
+			p[i][0]=p[i][0].mul(gvec(s));
+			p[i][0]=avgPoint.mul(p[i][0]);
 		}
 		if(isProcessing)for(let i=0;i<p.length;i++){
 			let a=p[i];//point A
@@ -80,7 +79,7 @@ window.onload=function(){
 				//if(dist==0)continue;
 				//apply force
 				let force;
-				force=0.01/((dist+0.1)**3);
+				force=0.01/((dist*8+0.1)**3);
 				dif=agvec(dif);
 				for(let i=0;i<a[1].length;i++){
 					a[2][i]+=dif[i]*force/2;
@@ -90,16 +89,47 @@ window.onload=function(){
 
 		}
 	}
+	drawStep=function(particles=points,dt=0.1){
+		const p=particles;
+		Draw.clear();
+		ctx.save();
+		ctx.translate(...Draw.center);
+		let moveGvec=gvec(
+			[0,0]//Math.dif2(Inputs.mouse.vec2,Draw.center).map((v,i)=>v/Math.hypot(...Draw.center)*8)
+		);
+		let scale=10;
+		for(let i=0;i<p.length;i++){
+			//for(let j of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,0],[0,1],[1,-1],[1,0],[1,1]]){
+				//ctx.save();
+				
+				let size=2;
+				//ctx.translate(...Math.scaleVec2(j,scale*Math.TAU));
+				let len=Math.Gvec.len(p[i][0]);
+				let coords=moveGvec.mul(p[i][0]);
+				coords=agvec(coords);//[coords[0][1],coords[0][2]]; 
+				coords=coords.map(v=>v*scale);
+				//coords=Math.scaleVec2(coords,Math.tanh(Math.len2(coords)/scale)/Math.len2(coords)*200);
+				Draw.circle(coords[0],coords[1],size,"green");
+				coords.map(v=>(v/scale).toFixed(1))
+				//Draw.Text({text:p[i][2].map(v=>(v/scale).toFixed(1)),x:coords[0],y:coords[1]+size,align:"center",color:"white"})();
+				//ctx.restore();
+			//}
+		}
+		Draw.line(-5,0,5,0,1,"#FFFFFFC0");
+		Draw.line(0,-5,0,5,1,"#FFFFFFC0");
+		ctx.restore();
+	}
 	{
 		let scales=[3,0,0];
 		let dimentions=2;
 		let p1=new Array(3).fill(new Array(dimentions).fill(0));
 		let sin60=Math.sin(Math.TAU/6);
-		let sideLen=3;
-		for(let i=0;i<4;i++){
+		let sideLen=5;
+		for(let i=0;i<sideLen**2;i++){
 			let p=p1.map((v,i)=>v.map(v=>(Math.random()*2-1)*scales[i]));
 			let x=(i/sideLen)|0,y=i%sideLen;
-			p[0]=[x+(y%2)*0.5,(y*sin60)].map(v=>v*4);// /(Math.abs(Math.sinh(x)))
+			p[0]=[x+(y%2)*0.5,(y*sin60)].map(v=>v);// /(Math.abs(Math.sinh(x)))
+			p[1]=[sideLen/2-p[0][1],0*p[1][0]].map(v=>v*0.3)
 			p[0]=gvec([x*0,0]).mul(gvec(p[0]));
 			points.push(p);
 		}
@@ -107,7 +137,12 @@ window.onload=function(){
 	endLoop= window.setInterval(()=>{
 		simulateStep();//alert()
 	},10);
+	MainGame.start();
 }
 </script>
+</head>
+<body onload="startSim()">
+<script src="../basicEngines/io.js"></script>
+<script src="../basicEngines/gameLoop.js"></script>
 </body>
 </html>
