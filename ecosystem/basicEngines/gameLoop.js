@@ -1,21 +1,59 @@
-"use strict";
-class GameLoopEngine{
+"use strict";{
+class GameLoopEngine extends class BasicGameLoopEngine{
+	updateOrder=[];
 	static init(){
-		if(window.MainGame!=void 0){throw "globalVar: redefining global: \"window.MainGame\"";}
-		if(window.mg!=void 0){throw "globalVar: redefining global: \"window.mg\"";}
+		if(window.MainGame!=void 0){throw "globalVar: redefining global: \"window.MainGame\"; try \"F5\"";}
 		window.MainGame=new this;
-		window.mg=MainGame;
 		return MainGame;
 	}
+	constructor(){
+		this.orderLength=1;
+		this.frameId=0;
+		this.i=0;
+		this.endLoop=false;
+		this.mainLoop=()=>{
+			if(!this.endLoop){
+				this.orderLength=this.updateOrder.length;
+				for (let i=0;i<this.orderLength&&i<this.updateOrder.length;i++) {
+					this.i=i;
+					this.updateOrder[i].onUpdate();
+					i=this.i;
+				}
+			}
+		}
+	}
+	async gameLoop(){
+		while(!this.endLoop){
+			let loopPromise=new Promise((resolve)=>{
+				this.frameId=window.requestAnimationFrame(()=>{
+					this.mainLoop();resolve();
+				});
+			});
+			await loopPromise;
+		}
+	}
+	start(){
+		this.endLoop=false;
+		this.gameLoop();//this.frameId=window.requestAnimationFrame(this.mainLoop);
+	}
+	end(){
+		window.cancelAnimationFrame(this.frameId);
+		this.endLoop=true;
+		window.requestAnimationFrame(()=>{
+			Draw.clear();
+		});
+	}
+}{//higher Engine
 	init(){
 		return this;
 	}
+	static basic=super.constructor;
 	constructor(){
+		super();
 		this.construct_Classes();
 		this.construct_Consts();
 		this.construct_Vars();
 		this.construct_defaultSettings();
-		//window.MainGame=new GameLoopEngine();
 	}
 	construct_defaultSettings(){
 		this.layers={
@@ -138,7 +176,7 @@ class GameLoopEngine{
 					return ;
 				}
 			};
-			this.Script=class Script extends this.UpdateScript{
+			this.Script=class Script extends this.UpdateScript{//not used
 				constructor(eventGetter,scriptGetter){
 					super(eventGetter,scriptGetter,false);
 				}
@@ -254,16 +292,7 @@ class GameLoopEngine{
 			this.makeScripts=function makeScriptsV_1_0(scripts,sprite=scripts){
 				for(let i in scripts){
 					if(scripts.hasOwnProperty(i)){
-						let s=scripts[i];
-						if(s.onUpdate){//i.e. s instanceof UpdateScript||UpdateLayer 
-							scripts[i]=s;
-						}
-						else{
-							let s1=s instanceof Array?[s[0],s[1],s[2]]:
-							typeof s=='object'?[s.layer,s.script,s.attach]:0;
-							if(s1==0)continue;
-							scripts[i]=new mainGameObj.UpdateScript(s1[0],s1[1].bind(sprite),s1[2]);
-						}
+						let s=this.makeScript(scripts[i]);
 					}
 				}
 				return scripts;
@@ -283,7 +312,6 @@ class GameLoopEngine{
 	}
 	construct_Consts(){
 		this.time=new Time();
-		this.orderLength=1;
 		this.mainLayers={
 			update:new this.UpdateLayer(20),
 			draw:new this.UpdateLayer(20),
@@ -302,50 +330,12 @@ class GameLoopEngine{
 			time.delta=Math.clamp(1/120,1/15,time.delta)
 		};
 		this.mainLayers.chunk.onUpdate=function(){
-			Draw.clear();
 			this.layerScript();
-			const time=this.parent.time;
-			time.startLoop();
-			time.realDelta=time.delta;
-			time.delta=Math.clamp(1/120,1/15,time.delta)
 		};
-		this.frameId=0;
-		this.i=0;
-		this.mainLoop=()=>{
-			if(!this.endLoop){
-				this.orderLength=this.updateOrder.length;
-				for (let i=0;i<this.orderLength&&i<this.updateOrder.length;i++) {
-					this.i=i;
-					this.updateOrder[i].onUpdate();
-					i=this.i;
-				}
-			}
-		}
-	}
-	async gameLoop(){
-		while(!this.endLoop){
-			let loopPromise=new Promise((resolve)=>{
-				this.frameId=window.requestAnimationFrame(()=>{
-					this.mainLoop();resolve();
-				});
-			});
-			await loopPromise;
-		}
 	}
 	construct_Vars(){
 		this.layers={};
 		this.updateOrder=[];
 		this.menuLayers={};//not yet used by MainGame class
 	}
-	start(){
-		this.endLoop=false;
-		this.gameLoop();//this.frameId=window.requestAnimationFrame(this.mainLoop);
-	}
-	end(){
-		window.cancelAnimationFrame(this.frameId);
-		this.endLoop=true;
-		window.requestAnimationFrame(()=>{
-			Draw.clear();
-		});
-	}
-};GameLoopEngine.init();
+};GameLoopEngine.init();}

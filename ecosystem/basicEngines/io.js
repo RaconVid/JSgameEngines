@@ -1,4 +1,5 @@
 "use strict";
+{//
 class IOEngine{
 	start(){
 		window.Draw=new this.Draw();
@@ -10,6 +11,7 @@ class IOEngine{
 		window.Time=this.Time;
 		//Draw.canvasObj.width=640;
 		//Draw.canvasObj.height=360;
+		return this;
 	}
 	constructor(){
 		this.Draw=class DrawClass{
@@ -51,7 +53,7 @@ class IOEngine{
 			}
 			Text({x=0,y=0,text,font="sans-serif",size=10,color="white",align="center"}){
 				return function printText(){
-					ctx.font=size+"px"+font;
+					ctx.font=size+"px "+font;
 					ctx.fillStyle=color;
 					ctx.textAlign=align;
 					ctx.fillText(text,x,y);
@@ -306,3 +308,4 @@ class IOEngine{
 (new IOEngine()).start();
 //if(document.body){(new IOEngine()).start();}
 //else document.onload=function(){(new IOEngine()).start();}
+}

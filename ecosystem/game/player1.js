@@ -374,5 +374,5 @@ let baseEnvioment=new Space.Sprite({
 			}
 		}},
 	},
-})
+});
 }
