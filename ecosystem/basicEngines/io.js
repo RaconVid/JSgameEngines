@@ -267,8 +267,8 @@ class IOEngine{
 		};
 		this.Time=class{
 			constructor(){
-				this.delta=1/60;//in seconds
-				this.start=this.real;
+				this.delta=1/60;//in seconds note: (change in time)
+				this.start=this.real;//note: t.start = time when startLoop was called
 			}
 			get real(){//in seconds
 				return (new Date()).getTime()/1000;

@@ -1,6 +1,8 @@
 "use strict";
 class GameLoopEngine{
 	static init(){
+		if(window.MainGame!=void 0){throw "globalVar: redefining global: \"window.MainGame\"";}
+		if(window.mg!=void 0){throw "globalVar: redefining global: \"window.mg\"";}
 		window.MainGame=new this;
 		window.mg=MainGame;
 		return MainGame;
@@ -19,6 +21,7 @@ class GameLoopEngine{
 		this.layers={
 			update:this.mainLayers.update,
 			draw:this.mainLayers.draw,
+			chunk:this.mainLayers.chunk,
 		};
 		this.updateOrder=[
 			this.layers.update,
@@ -64,19 +67,20 @@ class GameLoopEngine{
 					}
 
 					if(typeof this.script=='function'){
-						this.onUpdate=function(layer,i,pos){
-							this.isDeleting=Boolean(this.script(layer,i,pos));
+						this.onUpdate=function(layer,self){
+							this.isDeleting=Boolean(this.script(layer,self));
 							if(this.isDeleting){this.detach();}
 							//if(returns false or 0){delete script}
 						}
 					}
 					else if(getScript instanceof GeneratorFunction){
-						this.onUpdate=function(layer,i,pos){
-							this.isDeleting=this.script.next(layer,i,pos).done;
+						this.onUpdate=function(layer,self){
+							this.isDeleting=this.script.next(layer,self).done;
 							if(this.isDeleting){this.detach();}
 							//if(returns false or 0){delete script}
 						}
 					}
+					//else this.onUpdate=function(layer,i,pos)
 					if(autoLoad)this.attach();
 				}
 				setLayer(getLayer=this.layerGetter){
@@ -99,6 +103,10 @@ class GameLoopEngine{
 					}
 					return this;
 				}
+				clone(){
+					let newObj=new this.constructor(this.layer,this.script,false);
+					return newObj;
+				}
 				attach(){
 					//this.layer=this.getLayer(mainGameObj.layers);
 					this.layer.add(this);
@@ -112,7 +120,7 @@ class GameLoopEngine{
 					this.isAttached=false;
 					return this;
 				}
-				onUpdate(){
+				onUpdate(updateLayer,updateScript){
 					let i=this.script;
 					if(!i){}
 					else if(typeof i=='function')this.isDeleting=i();
@@ -279,12 +287,21 @@ class GameLoopEngine{
 		this.mainLayers={
 			update:new this.UpdateLayer(20),
 			draw:new this.UpdateLayer(20),
+			chunk:new this.UpdateLayer(4),//for storing sprites
 		}
 		this.mainLayers.update.onUpdate=function(){//default function
 			this.layerScript();
 		};
 		this.mainLayers.draw.parent=this;
 		this.mainLayers.draw.onUpdate=function(){
+			Draw.clear();
+			this.layerScript();
+			const time=this.parent.time;
+			time.startLoop();
+			time.realDelta=time.delta;
+			time.delta=Math.clamp(1/120,1/15,time.delta)
+		};
+		this.mainLayers.chunk.onUpdate=function(){
 			Draw.clear();
 			this.layerScript();
 			const time=this.parent.time;

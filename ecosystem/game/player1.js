@@ -1,20 +1,30 @@
 player1:{//makeSprite
 let mg=MainGame;
+let cameraLayer;{
+	cameraLayer=MainGame.layers.draw[8];
+	let oldLayer=[...cameraLayer];
+	cameraLayer.clear();
+	cameraLayer.push(...new MainGame.UpdateLayer());
+	cameraLayer[8].push(...oldLayer);
+}
 let player1=new Space.Sprite({
 	OnStart(){
 		//this.entity.chunks[0].players.push(this);
-		let cameraLayer=this.scripts.cameraLayer=MainGame.layers.draw[8];
-		let oldLayer=[...cameraLayer];
-		cameraLayer.clear();
-		cameraLayer.push(...new MainGame.UpdateLayer());
-		cameraLayer[8].push(...oldLayer);
-		this.scripts.mainDraw.setLayer().attach();
+		this.scripts.cameraLayer=cameraLayer;
+		for(let i=0;i<cameraLayer.length;i++){
+			cameraLayer[i].parentSprite=this;
+		}
+		cameraLayer.parentSprite=this;
+		//this.scripts.add(cameraLayer);
+		//this.scripts.mainDraw.setLayer().attach();
 		this.attach();
 	},
 	...{
 		coords:Math.vec2(100,100),
 		size:10,
+		mouseSize:3,
 	},
+	get mouseCoords(){return this.coords.add(Inputs.mouse.vec2).sub(Draw.center);},
 	...{//"private vars"
 		acceleration:Math.vec2(0,0),
 		movementValues:{
@@ -24,6 +34,8 @@ let player1=new Space.Sprite({
 			accelerationSpeed:1/0.12,
 			velocity:Math.vec2(0,0),
 		},
+		isCarrying:null,
+		carryButton:Inputs.getKey("Space"),
 	},
 	scripts:{
 		mainUpdate:{attach:true,layer:l=>l.update[8],*script(layer,script){
@@ -53,9 +65,21 @@ let player1=new Space.Sprite({
 							}else if(dist1>1&&obj.onTriggerLeave&&!obj.triggerState){
 								obj.onTriggerLeave(this);
 							}
-						}else if(obj.canBePickedUpByPlayer){
-							;
+						}else if(obj.canBePickedUpByPlayer&&this.carryButton.down&&(!this.isCarrying)){
+							//dist=Math.len2(this.mouseCoords,obj.coords);
+							//let sizeSum=obj.size+this.mouseSize;
+							if(dist-sizeSum<0){
+								this.isCarrying=obj;
+								obj.carriedBy=this;
+								obj.onCarryStart?.();
+							}
 						}
+					}
+					if(!this.carryButton.down&&this.isCarrying){
+						this.isCarrying.carriedBy=null;
+						this.isCarrying=null;
+					}else if(this.isCarrying){
+						this.isCarrying.coords.set(this.coords);
 					}
 				}
 				yield;
@@ -72,8 +96,15 @@ let player1=new Space.Sprite({
 				ctx.restore();
 			},
 		},
-		mainDraw:{
-			attach:false,
+		drawMouse:{attach:true,layer:l=>l.draw[8][10],script(layer,script){
+			ctx.save();ctx.translate(...this.mouseCoords);{
+				let col="#FFFFFF88"
+				Draw.line(5,0,-5,0,1.5,col);
+				Draw.line(0,-5,0,5,1.5,col);//Draw.Text({text:this.mouseCoords.map(v=>v.toFixed(2))})();
+			}ctx.restore();
+		}},
+		mainDraw:{//player
+			attach:true,
 			layer:l=>l.draw[8][8],
 			script(layer,script){
 				ctx.save();ctx.translate(...this.coords);{
@@ -91,13 +122,13 @@ let rockClass =(coords,chunk)=>new Space.Sprite({
 		size:20,
 		mass:10,
 		coords:new Math.vec2(coords),
-		canBePickedUpByPlayer:true,
+		canBePickedUpByPlayer:true,carriedBy:null,
 	},...{
 		envioment:rockClass.envioment,
 		isAlive:true,
 	},
 	scripts:{
-		moveMent1:{attach:true,layer:l=>l.update[8],*script(){
+		moveMent1:{attach:true,layer:l=>l.update[8],*script(l,s){
 			let timers=[0,0,0];
 			while(this.isAlive){
 				{//waiting1
@@ -110,20 +141,25 @@ let rockClass =(coords,chunk)=>new Space.Sprite({
 				}yield;
 				{
 					let targetCoords=this.coords;
-					this.scripts.searchingScript1.attach();
+					this.scripts.add(this.scripts.searchingScript1.attach());
 					//let randSum=0.5;
+					let enviomentBackup={
+						getRandomCoordinates:()=>{return Math.addVec2(this.coords,Math.scaleVec2(Math.rotate([1,0],Math.random()*Math.TAU,0,1),Math.random()*this.size*3));}
+					};
+					let envioment=this.envioment;
 					searchForGoodSpaceToMoveTo:while(true){
-						//for(let i=0;i<1;i++){
-							targetCoords=this.envioment.getRandomCoordinates();
+						if(!this.envioment)envioment=enviomentBackup;
+						for(let i=0;i<1;i++){
+							targetCoords=envioment.getRandomCoordinates();
 							if(Math.len2(this.coords,targetCoords)>this.size*3){
-								continue;
+								yield;continue;
 							}
 							//if((randSum-=(Math.random()*MainGame.time.delta*2))>0)continue
 							break searchForGoodSpaceToMoveTo;
-						//}
+						}
 						yield;
 					}
-					this.scripts.searchingScript1.detach();
+					this.scripts.delete(this.scripts.searchingScript1.detach());
 					this.scripts.mainDraw.text="moving";
 					let moveTime=Math.random()*4+1;
 					let moveVec=Math.scaleVec2(Math.dif2(targetCoords,this.coords),1/moveTime);
@@ -133,12 +169,25 @@ let rockClass =(coords,chunk)=>new Space.Sprite({
 						this.coords.set(this.coords.add(Math.scaleVec2(moveVec,MainGame.time.delta)));
 						yield;
 					}this.scripts.mainDraw.text="stoped moving";
-					this.coords.set(targetCoords);
+					//this.coords.set(targetCoords);
 					yield;
 				}
 			}
 		}},
-		searchingScript1:{attach:false,layer:l=>l.update[8],*script(){
+		borderCheckWhileInside:{attach:true,layer:l=>l.update[8],script(l,s){
+			if(Math.len2(this.coords,this.envioment.coords)>this.envioment.innerSize+4*this.size+1){
+				this.envioment.sprites.delete(this);
+				MainGame.layers.chunk[0].add(this);
+				this.scripts.delete(s.detach());
+				this.scripts.add(this.scripts.borderCheckWhileOutside.attach());
+				this.envioment=false;
+				return true;
+			}
+		}},
+		borderCheckWhileOutside:{attach:true,layer:l=>l.update[8],script(l,s){
+
+		}},
+		searchingScript1:{attach:false,layer:l=>l.update[8],*script(l,s){
 			let setTimer=function*(t){while((t-=MainGame.time.delta)>0){yield t};yield 0;}
 			let wait=0.25;
 			while(true){
@@ -155,7 +204,16 @@ let rockClass =(coords,chunk)=>new Space.Sprite({
 		mainDraw:{
 			attach:true,
 			layer:l=>l.draw[8][4],
-			script(layer,script){if(Math.random()>0.9){this.scripts.delete(script);return true;}
+			script(layer,script){
+				const player=layer.parentSprite;
+				const c=player.coords,c1=this.coords,cBox=Draw.center;
+				if(//if outside view box : dont draw
+					(Math.abs(c[0]-c1[0])>cBox[0]*2+this.size*3)||
+					(Math.abs(c[1]-c1[1])>cBox[1]*2+this.size*3)
+				){
+					return false;
+				}
+				//if(Math.random()>0.5){this.scripts.delete(script);return true;}
 				ctx.save();ctx.translate(...this.coords);{
 					Draw.circle(0,0,this.size,"grey");
 					ctx.strokeStyle="lightGrey";
@@ -167,15 +225,16 @@ let rockClass =(coords,chunk)=>new Space.Sprite({
 		},
 	},
 });
-let RPSenvioment = new Space.Sprite({
+let RPSenviomentTrigger = new Space.Sprite({
 	OnStart(){
 		for(let i of this.sprites){
 			i.parentSprite=this;
 		}
 		this.attach();
 		rockClass.envioment=this;
-		for(let i=0;i<10000;i++){
-			this.sprites.add(rockClass(this.getRandomCoordinates(),this));
+		for(let i=0;i<25;i++){
+			let obj=rockClass(this.getRandomCoordinates(),this);
+			this.sprites.add(obj);
 		}
 	},
 	...{//public vars
@@ -225,13 +284,12 @@ let RPSenvioment = new Space.Sprite({
 				scripts:{
 					onWake:{attach:true,layer:l=>l.update[4],script(l,s){
 						this.coords=Math.addVec2(this.parentSprite.coords,this._relCoords);
-						return true;await
+						return true;
 					}},
-					update:{attach:true,layer:l=>l.update[8],async *script(layer,script){
+					update:{attach:true,layer:l=>l.update[8],*script(layer,script){
 						let killEnviomentTimer=new MainGame.UpdateScript(l=>l.update[4],function*(l,s){
 							let t=0;
 							while(t+=MainGame.time.delta<1){yield;};
-							this.
 							return;
 						}.bind(this.scripts.update)());killEnviomentTimer.detach();
 						let hasYielded=false;
@@ -249,6 +307,9 @@ let RPSenvioment = new Space.Sprite({
 									script.detach();//pause script
 								}
 								yield;
+							}
+							while(this.cyclePhase>=0&&this.cyclePhase<1){
+
 							}
 						}
 					}},
@@ -271,7 +332,7 @@ let RPSenvioment = new Space.Sprite({
 	},
 	scripts:{
 		mainDraw:{
-			attach:loga,
+			attach:true,
 			layer:l=>l.draw[8][4],
 			script(layer,script){if(!player1.canSeeTriggers){return true;}
 				ctx.save();ctx.translate(...this.coords);{
@@ -284,4 +345,34 @@ let RPSenvioment = new Space.Sprite({
 		},
 	},
 });
+let baseEnvioment=new Space.Sprite({
+	OnStart(){
+		this.ownChunk={
+			rock:11,metal:0,
+			paper:10,wood:0,
+			scissor:10,
+		};
+		this.attach();
+	},
+	scripts:{
+		update1:{attach:true,layer:l=>l.update[8],script(layer,script){
+			let randTime=(p,t=1)=>Math.random()>1-(1-p)**(MainGame.time.delta*t);
+			let chunk=this.ownChunk;
+			let carry=0;
+			if(chunk.rock>15){
+				if(randTime(1-(1-0.01)**chunk.rock,0.2)){
+					carry=Math.min(chunk.rock,((Math.random()**2)*3)|0);
+					chunk.rock-=carry;
+					chunk.paper+=carry;
+				}
+			}else if(chunk.rock>15){
+				if(randTime(1-(1-0.01)**chunk.rock,0.2)){
+					carry=((Math.random()**2)*3)|0;
+					chunk.rock-=carry;
+					chunk.paper+=carry;
+				}
+			}
+		}},
+	},
+})
 }

@@ -181,6 +181,17 @@ const Space={
 }
 {
 	let mg=window.mainGame??MainGame;
+	const parsed=function(objs,self){//parseScripts
+		let parsed=mg.makeScripts(objs??{},self);
+		let scriptsSet=new mg.UpdateModule();
+		for(let i in parsed){
+			if(parsed[i].isAttached){
+				scriptsSet.add(parsed[i].detach());
+			}
+		}
+		Object.assign(scriptsSet,parsed);
+		return scriptsSet;
+	}
 	function Sprite(sprite={}){//UpdateModule == EntityModule
 		//entity;entities;scripts,coords;
 		Object.defineProperties(this,Object.getOwnPropertyDescriptors(sprite));
@@ -188,20 +199,12 @@ const Space={
 		let spriteData1=this;
 		this.entity=new Entity(this);
 		this.entity.chunks.push(world.chunk1);
-		this.entities=new mg.UpdateModule([this.entity]);
-		const parsed=(objs)=>{//parseScripts
-			let parsed=mg.makeScripts(objs??{},this);
-			scriptsSet=new mg.UpdateModule();
-			for(let i in parsed){
-				if(parsed[i].isAttached){
-					scriptsSet.add(parsed[i].detach());
-				}
-			}
-			Object.assign(scriptsSet,parsed);
-			return scriptsSet;
-		}
-		this.scripts=parsed(this.scripts);
-		this.costumes=parsed(this.costumes);
+		//this.entities=new mg.UpdateModule([this.entity]);
+		
+		this.scripts=parsed(this.scripts,this);
+		this.costumes=parsed(this.costumes,this);
+		this.entities=parsed(this.entities,this);
+		this.entities.add(this.entity);
 		this.parts=new mg.UpdateModule([
 			this.scripts,
 			this.entities,
@@ -217,6 +220,7 @@ const Space={
 	Sprite.dataPrototype={//contains keywords
 		OnStart(){},
 		scripts:{},
+		entities:{},
 		costumes:{},
 	};
 	Sprite.objectPrototype={//contains keywords
