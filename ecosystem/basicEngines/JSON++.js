@@ -1,6 +1,6 @@
 "use strict";
 //note:does not support proxy; proxy is very slow
-JSON.list=function deRefference(object,debugVars=false){
+JSON.list=function deReference(object,debugVars=false){
 	let objs=[];//list of original objects
 	let refs=[];//objs->index pointers (semi compiled)
 	let index;
@@ -96,7 +96,7 @@ JSON.list=function deRefference(object,debugVars=false){
 	//JSON.stringify(JSON.list(mainGame).refs).length
 	//JSON.list(mainGame).trees.map(v=>v.join(" ")).join("\n").length
 };
-JSON.parseList=function reRefference(objectRefs){
+JSON.parseList=function reReference(objectRefs){
 	let object=[];
 	for(let i=0;i<objectRefs.length;i++){
 		for(let value in objectRefs[i]){
