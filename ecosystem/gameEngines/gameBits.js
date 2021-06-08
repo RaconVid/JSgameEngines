@@ -197,8 +197,8 @@ const Space={
 		Object.defineProperties(this,Object.getOwnPropertyDescriptors(sprite));
 		//Object.defineProperties(this,Object.getOwnPropertyDescriptors(this.values||{}));
 		let spriteData1=this;
-		this.entity=new Entity(this);
-		this.entity.chunks.push(world.chunk1);
+		this.entity=new Entity(()=>[world.chunk1],this);
+		//this.entity.chunks.push(world.chunk1);
 		//this.entities=new mg.UpdateModule([this.entity]);
 		
 		this.scripts=parsed(this.scripts,this);

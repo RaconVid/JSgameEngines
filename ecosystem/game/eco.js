@@ -153,7 +153,7 @@ processCreatures=function(gameState=gs){//creatures that are near eachother
 };}
 gameState.dels=[];
 gameState.dels.push(
-	MainGame.layers.draw[8].add((layer,script)=>{
+	MainGame.layers.draw[12].add((layer,script)=>{
 		ctx.save();ctx.translate(...Draw.center);{
 			for(let objA of gameState.creatures){
 				ctx.save();ctx.translate(...objA.coords);{
