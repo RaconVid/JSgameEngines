@@ -114,7 +114,7 @@ JSON.parseList=function reReference(objectRefs){
 						try{
 							foo=eval1("(function "+expression.substr(1));
 						}catch(error){
-							//console.log("(function "+expression.substr(1));
+							//console.error("(function "+expression.substr(1));
 							//throw error;
 							foo="FUNCTION";
 						}

@@ -263,7 +263,7 @@ let RPSenviomentTrigger = new Space.Sprite({
 			new Space.Sprite({
 				[Symbol("sprite name")]:"resource handler",
 				OnStart(){
-					;
+					this.attach();
 				},
 				...{
 					resources:{//encludes all things in the envioment

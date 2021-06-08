@@ -1,4 +1,11 @@
 {
+	for(let i of [
+		"basicEngines/extraFunctions1.js",
+		"basicEngines/math.js",
+		"basicEngines/gameLoop.js",
+		"basicEngines/images.js",
+	])
+	document.head.appendChild();
 	let a=()=>importJavascriptFromSrc(
 		//"basicEngines/extraFunctions1.js",
 		//"basicEngines/images.js",

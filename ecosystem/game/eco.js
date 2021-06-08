@@ -41,7 +41,7 @@ class creature{
 	constructor(data){
 		Object.assign(this,data);
 	}
-}
+};
 for(let i=0;i<20;i++){gameState.creatures.push(new creature({type:["rock","paper","scissors"][i%3],coords:[0,0].map(v=>v+200*(Math.random()*2-1))}))}
 let processCreatures;{let gs=gameState;
 processCreatures=function(gameState=gs){//creatures that are near eachother
@@ -116,7 +116,7 @@ processCreatures=function(gameState=gs){//creatures that are near eachother
 		}
 		objA.actionsLeft=4;
 	}
-	const nearRadius=2000;
+	const nearRadius=40;
 	creatureForLoop:for(let i=0;i<creatures.length;i++){let objA=creatures[i];
 		for(let j=0;j<objA.near.length;j++){let objB=objA.near[j];
 			interace:{
@@ -150,7 +150,7 @@ processCreatures=function(gameState=gs){//creatures that are near eachother
 		if(objA.biomass<=0)objA.hp=Math.max(0,objA.hp-2);
 		else objA.hp=Math.clamp(0,Math.min(objA.hp+10,objA.maxHp??100),objA.hp*1.2+1*(objA.biomass>100))|0;
 	}
-}}
+};}
 gameState.dels=[];
 gameState.dels.push(
 	MainGame.layers.draw[8].add((layer,script)=>{
@@ -169,6 +169,30 @@ gameState.dels.push(
 			let t1=MainGame.time.start;
 			while(t1+0.2>MainGame.time.start){yield;}
 			processCreatures();
+			yield;
+		}
+	}()),
+	MainGame.layers.update[8].add(function*(layer,script){
+		let mouse=Inputs.mouse;
+		let getVec=()=>Math.dif2(Inputs.mouse.vec2,Draw.center);
+		while(true){
+			sellect:if(mouse.down){let coords=getVec();
+				let minObj=null,minDist=Infinity;
+				for(let i=0;i<gameState.creatures.length;i++){
+					let obj=gameState.creatures[i];
+					let dist=Math.len2(obj.coords,coords);
+					if(dist<(obj.size??10)+4&&dist<minDist){
+						minDist=dist;
+						minObj=obj;
+					}
+				}
+				if(!minObj)break sellect;
+				let selected= minObj;
+				while(mouse.down){
+					selected.coords=Math.vec2(...getVec());
+					yield;
+				}
+			}
 			yield;
 		}
 	}()),
@@ -232,6 +256,6 @@ gameState.dels.push(
 	})
 }})()
 importJavascriptFromSrc(
-
+	"game/player1.js"
 );MainGame.start();
 }

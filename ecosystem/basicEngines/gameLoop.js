@@ -1,4 +1,5 @@
 "use strict";{
+Draw;
 class GameLoopEngine extends class BasicGameLoopEngine{
 	updateOrder=[];
 	static init(){
@@ -153,8 +154,8 @@ class GameLoopEngine extends class BasicGameLoopEngine{
 					return this;
 				}
 				detach(){
-					this.isDeleting=true;
 					this.layer.delete(this);//this.deleter();
+					this.isDeleting=true;
 					this.isAttached=false;
 					return this;
 				}
@@ -164,23 +165,11 @@ class GameLoopEngine extends class BasicGameLoopEngine{
 					else if(typeof i=='function')this.isDeleting=i();
 					else if(i.next)return this.isDeleting=i.next().done;//if(i.next()?.done);
 					else if(i.onUpdate)i.onUpdate();
-					else {
-						console.error(this);
-						alert("SCRIPT ERROR: failed to run update script");
-						throw "UScript Error: \""+typeof this.script+"\" isnt supported;"+
-						"\n failed to run UpdateScript";
-					}
 					return this.isDeleting;
 				}
 				[Symbol.iterator](){
 					return ;
 				}
-			};
-			this.Script=class Script extends this.UpdateScript{//not used
-				constructor(eventGetter,scriptGetter){
-					super(eventGetter,scriptGetter,false);
-				}
-				//attach(sprite):sprite,layer,script
 			};
 			this.UpdateLayer=class UpdateLayerV_1_1 extends Array{
 				i=-1;
@@ -292,12 +281,13 @@ class GameLoopEngine extends class BasicGameLoopEngine{
 			this.makeScripts=function makeScriptsV_1_0(scripts,sprite=scripts){
 				for(let i in scripts){
 					if(scripts.hasOwnProperty(i)){
-						let s=this.makeScript(scripts[i]);
+						let s=this.makeScript(scripts[i],sprite);
+						scripts[i]=s;
 					}
 				}
 				return scripts;
 			};
-			this.makeScript=function makeScriptV_1_0(script,sprite={}){
+			this.makeScript=function makeScriptV_1_0(script,sprite=null){
 				let s=script;
 				if(s.onUpdate){//i.e. s instanceof UpdateScript||UpdateLayer 
 					return s;
@@ -306,7 +296,7 @@ class GameLoopEngine extends class BasicGameLoopEngine{
 					let s1=s instanceof Array?[s[0],s[1],s[2]]:
 					typeof s=='object'?[s.layer,s.script,s.attach]:0;
 					if(s1==0)return s;
-					return new mainGameObj.UpdateScript(s1[0],sprite?s1[1]:s1[1].bind(sprite),s1[2]);
+					return new mainGameObj.UpdateScript(s1[0],sprite?s1[1].bind(sprite):s1[1],s1[2]);
 				}
 			}
 	}
@@ -327,7 +317,7 @@ class GameLoopEngine extends class BasicGameLoopEngine{
 			const time=this.parent.time;
 			time.startLoop();
 			time.realDelta=time.delta;
-			time.delta=Math.clamp(1/120,1/15,time.delta)
+			time.delta=Math.clamp(1/120,1/15,time.delta);
 		};
 		this.mainLayers.chunk.onUpdate=function(){
 			this.layerScript();
