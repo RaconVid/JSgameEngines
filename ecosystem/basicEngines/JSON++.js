@@ -1,4 +1,6 @@
-JSON.list=function(object){
+"use strict";
+//note:does not support proxy; proxy is very slow
+JSON.list=function deReference(object,debugVars=false){
 	let objs=[];//list of original objects
 	let refs=[];//objs->index pointers (semi compiled)
 	let index;
@@ -21,13 +23,13 @@ JSON.list=function(object){
 	}
 	const returnFuncGen=(objClone,i)=>v=>{objClone[i]=v;return v;};
 	const cloneStep=function({value,currentTree=[]}){
-		trees.push(currentTree);
+		if(debugVars)trees.push(currentTree);
 		let objClone,index,i;
 		if(typeof value == "function"){
 			if(currentTree[currentTree.length-1]=="toJSON"){
 				return value;
 			}
-			return false?"("+value+")":"FUNCTION";
+			return true?"("+value+")":"FUNCTION";
 		}
 		if(typeof value == "string"){
 			return JSON.stringify(value);
@@ -43,7 +45,7 @@ JSON.list=function(object){
 			}
 		}
 		if(typeof value !== "object"){
-			return "("+value+")";
+			return JSON.stringify(value);//"("+value+")";
 		}
 		index=objs.indexOf(value);
 		if(index!=-1){
@@ -72,20 +74,59 @@ JSON.list=function(object){
 		}
 	}
 	let currentTree=[];
-	let trees=[];
 	let callBack=[];
+	
+	let trees=[];
 	let obj2=[];
 	obj2.push(cloneStep({value:object}));
-	for(let i=0;i<callBack.length&&i*0<10000;i++){
-		callBack[i].returnFunc(obj2.push(cloneStep(callBack[i])));
+	let value;
+	for(let i=0,i1=0;i<callBack.length&&i*0<10000;i++){
+		value=cloneStep(callBack[i]);
+		callBack[i].returnFunc(value);
+		if(debugVars)obj2.push(value);
+		else {delete callBack[i];}
 	}
-	return{
-		objs:objs,//list of different objects
-		refs:refs,//objs.compile (mainOutput)
-		obj2:obj2,//list of all values
-		trees:trees,//unneeded
+	return (!debugVars)?refs:{
+		objs,//list of different objects
+		refs,//objs.compile (mainOutput)
+		obj2,//list of all values
+		trees,//unneeded
 	};
 	//eval("("+v+")")
 	//JSON.stringify(JSON.list(mainGame).refs).length
 	//JSON.list(mainGame).trees.map(v=>v.join(" ")).join("\n").length
 };
+JSON.parseList=function reReference(objectRefs){
+	let object=[];
+	for(let i=0;i<objectRefs.length;i++){
+		for(let value in objectRefs[i]){
+			if(typeof objectRefs[i][value]=="number"){
+				objectRefs[i][value]=objectRefs[objectRefs[i][value]];
+			}
+			else if(typeof objectRefs[i][value]=="string"){
+				if(objectRefs[i][value][0]=="("){//is funtion?
+					let foo;
+					let eval1=(globalEval??eval);
+					let expression=objectRefs[i][value];
+					try{
+						foo=eval1(expression);
+					}catch(error){
+						try{
+							foo=eval1("(function "+expression.substr(1));
+						}catch(error){
+							//console.error("(function "+expression.substr(1));
+							//throw error;
+							foo="FUNCTION";
+						}
+					}
+					objectRefs[i][value]=foo;
+				}
+				else{
+					window.things=objectRefs[i][value]
+					objectRefs[i][value]=JSON.parse(objectRefs[i][value]);
+				}
+			}
+		}
+	}
+	return objectRefs[0];
+}

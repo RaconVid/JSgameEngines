@@ -1,3 +1,5 @@
+"use strict";
+{//
 class IOEngine{
 	start(){
 		window.Draw=new this.Draw();
@@ -9,9 +11,10 @@ class IOEngine{
 		window.Time=this.Time;
 		//Draw.canvasObj.width=640;
 		//Draw.canvasObj.height=360;
+		return this;
 	}
 	constructor(){
-		this.Draw=class{
+		this.Draw=class DrawClass{
 			constructor(){
 				this.circles=true;
 				this.htmlObject=null;
@@ -20,20 +23,20 @@ class IOEngine{
 				this.width=640;
 				this.height=360;
 				this.scale=1;
+				this.center=[this.width/2,this.height/2];
+				if(Math.Vector2){this.center=new Math.Vector2(this.center);}
 			}
 			transform(pos){
-				ctx.translate(
-					pos.vec[0],
-					pos.vec[1],
-				);
 				ctx.transform(
 					pos.mat[0][0],
 					pos.mat[0][1],
 					pos.mat[1][0],
 					pos.mat[1][1],
-					0,0,
+					pos.vec[0],
+					pos.vec[1],
 				);
 			}
+			//may not work with newer version
 			undoTransform(pos){//{mat,vec}
 				ctx.translate(
 					-pos.vec[0],
@@ -47,6 +50,14 @@ class IOEngine{
 					pos.mat[1][1]/det,
 					0,0,
 				);
+			}
+			Text({x=0,y=0,text,font="sans-serif",size=10,color="white",align="center"}){
+				return function printText(){
+					ctx.font=size+"px "+font;
+					ctx.fillStyle=color;
+					ctx.textAlign=align;
+					ctx.fillText(text,x,y);
+				};
 			}
 			circle(x,y,size,colour){	
 				ctx.fillStyle = colour;//green
@@ -125,7 +136,7 @@ class IOEngine{
 				window.onresize();
 			}
 		};
-		this.Inputs=class{
+		this.Inputs=class InputsClass{
 			constructor(htmlObject){
 				this.Mouse=class{
 					constructor(){
@@ -147,7 +158,7 @@ class IOEngine{
 						}
 					}
 				};
-				this.Key=class{
+				this.Key=class Key{
 					constructor({downVal=false,onDown=false,onUp=false}={downVal:false,onDown:false,onUp:false}){
 						this.downVal=downVal;
 						this.onDown=onDown;
@@ -166,9 +177,43 @@ class IOEngine{
 						this.onDown=onDown;
 						this.onUp=onUp;
 					}
-				}
+				};
+				this.keys={//note: keys is like new Map()
+					current:false,
+					//will contain other keys
+				};
 				this.mouse=new this.Mouse();
-				this.keys={current:false};
+				//note: to do: add more features to Joysticks
+				this.MovementKeys;{
+					let inputsObj=window.Inputs??this;
+					this.MovementKeys=class Joystick extends this.Key{
+						constructor(...keys){
+							super();
+							this.keys=keys.map(v=>inputsObj.getKey(v));
+							//this.keyNames=[...keys];
+						}
+						//vec2Val=Math.vec2(0,0);
+						get vec2(){
+							return Math.vec2(this.keys[3].down-this.keys[1].down,-(this.keys[0].down-this.keys[2].down));
+						}
+						get down(){
+							return this.keys[3].down||this.keys[1].down||this.keys[0].down||this.keys[2].down;
+						}
+						static [0]=new this('KeyW','KeyA','KeyS','KeyD');
+						static [1]=new this('ArrowUp','ArrowLeft','ArrowDown','ArrowRight');
+						static [2]=Object.defineProperties(
+							new this('KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'),
+							{vec2:{get(){
+								return Math.vec2((this.keys[3].down||this.keys[7].down)-(this.keys[1].down||this.keys[5].down),-((this.keys[0].down||this.keys[4].down)-(this.keys[2].down||this.keys[6].down)));
+							}},down:{get(){
+								return this.keys[3].down||this.keys[1].down||this.keys[0].down||this.keys[2].down||this.keys[7].down||this.keys[5].down||this.keys[4].down||this.keys[6].down;
+							}}}
+						);
+					};
+				}
+				this.keys.KeysWASD=this.MovementKeys[0];
+				this.keys.KeysArrow=this.MovementKeys[1];
+				this.keys.KeysBoth=this.MovementKeys[2];
 				this.htmlObject=htmlObject;//canvas
 			}
 			start(htmlObject=this.htmlObject){
@@ -183,7 +228,7 @@ class IOEngine{
 						}
 						if(event.code in this.keys){
 							this.keys.current=event.key;
-							this.keys[event.key].down=true;
+							this.keys[event.code].down=true;
 						}
 					},
 					keyup:(event)=>{
@@ -224,8 +269,8 @@ class IOEngine{
 		};
 		this.Time=class{
 			constructor(){
-				this.delta=1/60;//in seconds
-				this.start=this.real;
+				this.delta=1/60;//in seconds note: (change in time)
+				this.start=this.real;//note: t.start = time when startLoop was called
 			}
 			get real(){//in seconds
 				return (new Date()).getTime()/1000;
@@ -260,5 +305,7 @@ class IOEngine{
 		};
 	}
 }
-
 (new IOEngine()).start();
+//if(document.body){(new IOEngine()).start();}
+//else document.onload=function(){(new IOEngine()).start();}
+}

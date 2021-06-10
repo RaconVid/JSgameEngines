@@ -1,0 +1,3 @@
+importJavascriptFromSrc(
+	"game/eco.js",
+);
