@@ -54,33 +54,31 @@ let player1=new Space.Sprite({
 						this.coords.set(this.coords.add(Math.scaleVec2(ns.velocity,MainGame.time.delta)));
 					}
 				}
-				for(let chunk of this.entity.chunks){let i=0;
-					for(let obj of chunk.list){
-						if(obj==this)continue;
-						let dist=Math.len2(this.coords,obj.coords);
-						let sizeSum=this.size+obj.size,dist1=dist-sizeSum;
-						if(obj.hasTrigger){
-							if(dist1<-1&&obj.onTriggerEnter&&obj.triggerState){
-								obj.onTriggerEnter(this);//for
-							}else if(dist1>1&&obj.onTriggerLeave&&!obj.triggerState){
-								obj.onTriggerLeave(this);
-							}
-						}else if(obj.canBePickedUpByPlayer&&this.carryButton.down&&(!this.isCarrying)){
-							//dist=Math.len2(this.mouseCoords,obj.coords);
-							//let sizeSum=obj.size+this.mouseSize;
-							if(dist-sizeSum<0){
-								this.isCarrying=obj;
-								obj.carriedBy=this;
-								obj.onCarryStart?.();
-							}
+				for(let obj of this.entity.chunk){
+					if(obj==this)continue;
+					let dist=Math.len2(this.coords,obj.coords);
+					let sizeSum=this.size+obj.size,dist1=dist-sizeSum;
+					if(obj.hasTrigger){
+						if(dist1<-1&&obj.onTriggerEnter&&obj.triggerState){
+							obj.onTriggerEnter(this);//for
+						}else if(dist1>1&&obj.onTriggerLeave&&!obj.triggerState){
+							obj.onTriggerLeave(this);
+						}
+					}else if(obj.canBePickedUpByPlayer&&this.carryButton.down&&(!this.isCarrying)){
+						//dist=Math.len2(this.mouseCoords,obj.coords);
+						//let sizeSum=obj.size+this.mouseSize;
+						if(dist-sizeSum<0){
+							this.isCarrying=obj;
+							obj.carriedBy=this;
+							obj.onCarryStart?.();
 						}
 					}
-					if(!this.carryButton.down&&this.isCarrying){
-						this.isCarrying.carriedBy=null;
-						this.isCarrying=null;
-					}else if(this.isCarrying){
-						this.isCarrying.coords.set(this.coords);
-					}
+				}
+				if(!this.carryButton.down&&this.isCarrying){
+					this.isCarrying.carriedBy=null;
+					this.isCarrying=null;
+				}else if(this.isCarrying){
+					this.isCarrying.coords.set(this.coords);
 				}
 				yield;
 			}
@@ -128,6 +126,24 @@ let rockClass =(coords,chunk)=>new Space.Sprite({
 		isAlive:true,
 	},
 	scripts:{
+		collider1:{attach:true,layer:l=>l.update[8],*script(l,s){
+			while(true){
+				let chunk=this.entity.chunk;
+				for(let i=0;i<chunk.length;i++){
+					let obj=chunk[i];
+					let dif=Math.dif2(obj.coords,this.coords);
+					let d=Math.len2(dif);
+					let sizeSum=this.size+(obj.size??10);
+					if(d<sizeSum&&d>0){
+						dif=Math.scaleVec2(dif,(d-sizeSum)/d/2);
+						this.coords=Math.vec2(Math.addVec2(this.coords,dif));
+						obj.coords=Math.vec2(Math.dif2(obj.coords,dif));
+					}
+				}
+				this.entity.update();
+				yield;
+			}
+		}},
 		moveMent1:{attach:true,layer:l=>l.update[8],*script(l,s){
 			let timers=[0,0,0];
 			while(this.isAlive){
@@ -232,7 +248,7 @@ let RPSenviomentTrigger = new Space.Sprite({
 		}
 		this.attach();
 		rockClass.envioment=this;
-		for(let i=0;i<25;i++){
+		for(let i=0;i<40;i++){
 			let obj=rockClass(this.getRandomCoordinates(),this);
 			this.sprites.add(obj);
 		}
@@ -315,7 +331,7 @@ let RPSenviomentTrigger = new Space.Sprite({
 					}},
 					draw:{attach:true,layer:l=>l.draw[8][10],script(){
 							ctx.save();
-							ctx.translate(...this.coords)
+							ctx.translate(...this.coords);
 							Draw.Text({
 								text:"hello world",x:0,y:0,
 								color:"white",

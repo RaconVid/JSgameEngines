@@ -1,39 +1,87 @@
-var world;
-//{
-	class World {
-		constructor(){
-			this.chunk1=new Plane([]);//default chunk;
+var world,World;
+{//TheHeydenBro's (clashofclans)
+	World=class World extends Function{//euclidian grid
+		constructor(worldSize=2,chunkDiamiter=100){
+			super();
+			this.worldSize=worldSize;
+			this.chunkDiamiter=chunkDiamiter;
+			this.plane=new Plane([]);//default chunk;
+			this.grid=[];
+			for(let y=0;y<worldSize;y++){
+				this.grid[y]=[];
+				for(let x=0;x<worldSize;x++){
+					this.grid[y][x]=new Plane([],[x,y],chunkDiamiter);
+				}
+			}
+			this.chunk1=this.grid[worldSize>>1][worldSize>>1];
+		};
+		static makeEntity(entityRefObj,world=entityRefObj.world??this){
+			entityRefObj.coords??=[0,0];
+			entityRefObj.chunk??=world.getChunkFromCoords(entityRefObj.coords);
+			//entityRefObj.sizeInChunks??=2;
+			entityRefObj.world??=world;
+			world.updateChunks(entityRefObj);
+			return entityRefObj;
 		}
-		get Chunk(){return Chunk;}
-		get Entity(){return Entity;}
-		get Portal(){return Portal;}
+		static spawn(entity,world=entity.world??this){
+			return world.updateChunks(world.makeEntity(entity));
+		};
+		static getChunkFromCoords(coords,world=this){
+			let mod=world.worldSize;
+			let gridCoords=[
+				(((coords[0]/world.chunkDiamiter-world.worldSize/2)|0)%mod+mod)%mod,
+				(((coords[1]/world.chunkDiamiter-world.worldSize/2)|0)%mod+mod)%mod,
+			];
+			let chunk=world.grid[gridCoords[1]][gridCoords[0]];
+			return chunk;
+		};
+		static updateChunks(entity,coords=entity.coords,world=entity.world??this){
+			let chunk=world.getChunkFromCoords(coords);
+			if(chunk==entity.chunk){
+				return entity;
+			}
+			let c1=chunk.coords;
+			let chunks=[];
+			for(let i=0;i<entity[Plane.chunkListKey];i++){
+				entity[Plane.chunkListKey][i].delete(entity);
+			}
+			for(let i=-1;i<=1;i++){
+				for(let j=-1;j<=1;j++){
+					let c=Math.addVec2(chunk.coords,[i,j]);
+					world.grid[Math.max(0,c[1])]?.[Math.max(0,c[0])]?.add(entity);
+
+				}
+			}
+			entity.chunk=chunk;
+			return entity;
+		};
+		//get Chunk(){return Chunk;};
+		//get Entity(){return Entity;};
+		//get Portal(){return Portal;};
 		static Chunk;
 		static Plane;
 		static Entity;
-		static Portal;
+		//static Portal;
 	};
 	class Plane extends Array{//Set (cos Set is slow)
+		static chunkListKey=Symbol("chunkList");
+		constructor(list=[],coords){//scale=diamiter
+			super(list.length);
+			this.coords=coords;
+			for(let i=0;i<list.length;i++)this[i]=list[i];
+			this.idKey=Symbol("id");//"id from chunk"
+			this.chunkKey=Symbol("chunkKey");
+		}
 		get list(){return this;}
-		set list(val){
-			let len=val.length;
+		set list(val){this.setList(val)}
+		setList(newList){
+			let len=newList.length;
 			while(len>this.length){
 				this.delete(this.length-1);
 			}
-			for(let i=0;i<val.length;i++){
-				this[i]=val[i];
+			for(let i=0;i<newList.length;i++){
+				this[i]=newList[i];
 			}
-		}
-		constructor(list=[],coords=0){//scale=diamiter
-			super(list.length);
-			for(let i=0;i<list.length;i++)this[i]=list[i];
-			this.idKey=Symbol("idKey");//"id from chunk"
-		}
-		newEntity(coords){
-			let newObj=new Entity();
-			newObj.chunks.push(this);
-			newObj.coords=[...this.coords];
-			this.attach(newObj);
-			return newObj;
 		}
 		add(obj){
 			if(!(this.idKey in obj)){//||!this.list.includes(obj)){
@@ -41,8 +89,14 @@ var world;
 				this.push(obj);
 			}
 			else{
-				console.error({chunk:this,obj:obj});
+				//console.error({chunk:this,obj:obj});
 				//throw "object already has an id for this chunk";
+			}
+			const key=Plane.chunkListKey;
+			if(!(key in obj))obj[key]=[];
+			if(!(this.chunkKey in obj[key])){
+				obj[key][this.chunkKey]=this;
+				obj[key].push(this);
 			}
 		}
 		delete(obj){//item or itemIndex
@@ -59,118 +113,56 @@ var world;
 				throw "object does not have an id for this chunk";
 			}
 			let lastItem=this.shift();
-			if(index<this.length-1){
+			if(index<this.length&&lastItem!=obj){
 				this[index]=lastItem;
 				lastItem[this.idKey]=index;
 			}
-		}
-	};
-	class Chunk{
-		static chunkKey=Symbol("chunkKey");
-		constructor(coords=undefined,scale=400){//scale=diamiter
-			if(coords)this.debug_XY=[...coords];
-			this.coords=coords.map(v=>v*scale);
-			this.scale=scale;
-			//this.freeIds=[];
-			//this.usedIds=[];//using lazy way
-			this.list=[];//list of all objects in chunk
-			this.idKey=Symbol("chunk("+coords+")_id");
-		}
-		newEntity(coords){
-			let newObj=new Entity();
-			newObj.chunks.push(this);
-			newObj.coords=[...this.coords];
-			this.attach(newObj);
-			return newObj;
-		}
-		attach(obj){
-			//if is unbound entity
-			if(!(this.idKey in obj)){//||!this.list.includes(obj)){
-				this.list.push(obj);
-				obj[this.idKey]=this.list.length;
+			const listKey=Plane.chunkListKey;
+			if(listKey in obj)
+			if(this.chunkKey in obj[listKey]){
+				delete obj[listKey][this.chunkKey];
+				let index=obj[listKey].indexOf(this);
+				obj[listKey].splice(index,1);
 			}
-			else if(obj!=this.list[obj[this.idKey]]){//if id changed
-				let index=this.list.indexOf(obj);
-				obj[this.idKey]=index;
-			}
-			else{
-
-			}
-			return obj;
 		}
-		detach(obj){
-			if(this.idKey in obj){
-				let index=-1;
-				if(obj==this.list[obj[this.idKey]])
-					index=obj[this.idKey];
-				else
-					index=this.list.indexOf(obj);
-				if(index!=-1){
-					this.list.splice(index,1);
-				}
-				delete obj[this.idKey];
-			}
-			return obj;
-		}
-	}
+	};World.Plane=Plane;
 	class Entity{
-		chunks=[];
 		coords=[0,0];
-		constructor(getChunk=[],getParentObj=this){
-			if(typeof getChunk=="function"){
-				this.chunks=getChunk();
+		constructor(getWorld=w=>w,parentObj=this,autoAttach=true){
+			this.world=getWorld(World);
+			this.parentObj=parentObj;
+			this.world.makeEntity(parentObj);
+			this.chunk=this.parentObj.world.chunk1;
+			if(autoAttach){
+				this.attach();
 			}
-			else{
-				this.chunks=getChunk;
-			}
-			this.getChunk=getChunk;
-			this.parentObj=getParentObj;
 		}
-		attach(chunk=undefined){
-			if(chunk){
-				chunk.add(this.parentObj);
-			}
-			else{
-				for(let i=0;i<this.chunks.length;i++){
-					if(this.chunks[i].add)// if instance of Chunk
-						this.chunks[i].add(this.parentObj)
-					else if(this.chunks[i].push)//if instance of Array
-						this.chunks[i].push(this.parentObj)
-				}
+		update(){
+			this.chunk=this.parentObj.world.getChunkFromCoords(this.parentObj.coords);
+			this.world.updateChunks(this.parentObj,this.parentObj.coords,this.world);
+			//this.chunk=this.parentObj.chunk;			
+			return this;//for pipelineing
+		}
+		attach(){
+			this.chunk.add(this.parentObj);
+			this.update();
+			return this;//for pipelineing
+		}
+		detach(){
+			this.parentObj[Plane.chunkListKey]??=[];
+			let list=this.parentObj[Plane.chunkListKey];
+			for(let i=0,len=list.length;i<len;i++){
+				list[list.length-1].delete(this.parentObj);
 			}
 			return this;//for pipelineing
 		}
-		detach(chunk=undefined){
-			if(chunk){
-				chunk.delete(this.parentObj);
-			}
-			else{
-				for(let i=0;i<this.chunks.length;i++){
-					if(this.chunks[i] instanceof Array){//layer on chunk
-						let index=this.chunks[i].indexOf(this);
-						if(index!=-1){
-							this.chunks[i].splice(index,1);
-						}
-					}
-					else this.chunks[i].delete(this.parentObj);
-				}
-			}
-			return this;//for pipelineing
-		}
-	}
-	class Portal extends Entity{
-		pos=new Space.Pos();
-		constructor(pos){
-			super();
-			this.pos=pos||this.pos;
-		}
-		moveThrough(entity){
-			let newPos=this.pos.add({vec:entity.coords})
-			entity.coords=newPos.vec;
-			entity.detach(this.pos.rel);
-			entity.attach(this.pos.obj);
-			return entity;
-		}
-	}
-//}
-world=new World();
+	};World.Entity=Entity;
+	Object.assign(World,new World());
+	({
+		makeEntity:World.prototype.makeEntity,
+		spawn:World.prototype.spawn,
+		getChunkFromCoords:World.prototype.getChunkFromCoords,
+		updateChunks:World.prototype.updateChunks,
+	});
+}
+world=World;
