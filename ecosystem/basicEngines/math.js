@@ -174,33 +174,37 @@
 			this[1]=val[1];
 			return this;
 		}
+		get(){
+			return new this.constructor(this);
+		}
 		//add
 			static add(vecA,vecB){
 				return (typeof vecB[0]=="number")
 				? this.addVec2(vecA,vecB)
 				: this.addMat2x2(vecA,vecB);
-			}add(vec){return this.constructor.add(this,vec)}
-			
+			};add(vec){return this.constructor.add(this,vec)};
+			addR(vec){return this.constructor.add(vec,this)};
 			static addVec2(vecA,vecB){
 				return new this(vecA[0]+vecB[0],vecA[1]+vecB[1]);
-			}addVec2(vec){return this.constructor.addVec2(this,vec)}
+			};addVec2(vec){return this.constructor.addVec2(this,vec)};
 
 			static addMat2x2(vec,mat){
 				return new this(vec[0]*mat[0][0]+vec[1]*mat[1][0],vec[0]*mat[0][1]+vec[1]*mat[1][1]);
-			}addMat2x2(mat){return this.constructor.addMat2x2(this,mat)}
+			};addMat2x2(mat){return this.constructor.addMat2x2(this,mat)};
 		//sub
 			//(sub==subtract==minus)
 			static sub(vecA,vecB){
 				return (typeof vecB[0]=="number")
 				? this.subVec2(vecA,vecB)
 				: (()=>{throw "vec2.sub(Mat2x2) isnt supported.. yet"});
-			}sub(vec){return this.constructor.sub(this,vec);}
+			};sub(vec){return this.constructor.sub(this,vec);};
+			subR(vec){return this.constructor.sub(vec,this)};
 			static subVec2(vecA,vecB){
 				return new this(vecA[0]-vecB[0],vecA[1]-vecB[1]);
-			}sub(vec){return this.constructor.sub(this,vec);}
+			};sub(vec){return this.constructor.sub(this,vec);};
 			static get minus(){
 				return this.sub;
-			}get minus(){return this.sub;}
+			};get minus(){return this.sub;};
 		//[0]=0;[1]=0;
 	};
 	Math.mat2=function(){

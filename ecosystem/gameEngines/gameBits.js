@@ -203,7 +203,19 @@ const Space={
 		
 		this.scripts=parsed(this.scripts,this);
 		this.costumes=parsed(this.costumes,this);
-		this.entities=parsed(this.entities,this);
+		this.entities=((objs,self)=>{
+			let parsed=objs??{};
+			let scriptsSet=new mg.UpdateModule();
+			for(let i in parsed){
+				parsed[i]=World.makeEntity(i,self);
+				//parsed[i].update();
+				if(parsed[i].isAttached){
+					scriptsSet.add(parsed[i]);
+				}
+			}
+			Object.assign(scriptsSet,parsed);
+			return scriptsSet;
+		})(this.entities,this);//parsed(this.entities,this);
 		this.entities.add(this.entity);
 		this.parts=new mg.UpdateModule([
 			this.scripts,

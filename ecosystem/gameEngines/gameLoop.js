@@ -1,53 +1,5 @@
-"use strict";{
-Draw;
-class GameLoopEngine extends class BasicGameLoopEngine{
-	updateOrder=[];
-	static init(){
-		if(window.MainGame!=void 0){throw "globalVar: redefining global: \"window.MainGame\"; try \"F5\"";}
-		window.MainGame=new this;
-		return MainGame;
-	}
-	constructor(){
-		this.orderLength=1;
-		this.frameId=0;
-		this.i=0;
-		this.endLoop=false;
-		this.mainLoop=()=>{
-			if(!this.endLoop){
-				this.orderLength=this.updateOrder.length;
-				for (let i=0;i<this.orderLength&&i<this.updateOrder.length;i++) {
-					this.i=i;
-					this.updateOrder[i].onUpdate();
-					i=this.i;
-				}
-			}
-		}
-	}
-	async gameLoop(){
-		while(!this.endLoop){
-			let loopPromise=new Promise((resolve)=>{
-				this.frameId=window.requestAnimationFrame(()=>{
-					this.mainLoop();resolve();
-				});
-			});
-			await loopPromise;
-		}
-	}
-	start(){
-		this.endLoop=false;
-		this.gameLoop();//this.frameId=window.requestAnimationFrame(this.mainLoop);
-	}
-	end(){
-		window.cancelAnimationFrame(this.frameId);
-		this.endLoop=true;
-		window.requestAnimationFrame(()=>{
-			Draw.clear();
-		});
-	}
-}{//higher Engine
-	init(){
-		return this;
-	}
+"use strict";
+window.MainGame=new class GameLoopEngine extends MainGame.constructor{//higher Engine
 	static basic=super.constructor;
 	constructor(){
 		super();
@@ -328,4 +280,4 @@ class GameLoopEngine extends class BasicGameLoopEngine{
 		this.updateOrder=[];
 		this.menuLayers={};//not yet used by MainGame class
 	}
-};GameLoopEngine.init();}
+};

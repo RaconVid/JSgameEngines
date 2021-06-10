@@ -6,6 +6,8 @@ class IOEngine{
 		window.Draw.start();
 		window.Inputs=new this.Inputs(document.getElementById("canvas1"));
 		window.Inputs.start();
+		//window.GameLoopClass=new this.GameLoopClass();//replaced by 
+		window.MainGame=new this.AsyncLoop();
 		//window.fps=new this.Fps();
 		//window.fps.start();
 		window.Time=this.Time;
@@ -17,7 +19,7 @@ class IOEngine{
 		this.Draw=class DrawClass{
 			constructor(){
 				this.circles=true;
-				this.htmlObject=null;
+				this.canvasObj=null;//is set to canvas1
 				this.ctx=null;
 				this.transforms=[];
 				this.width=640;
@@ -267,7 +269,7 @@ class IOEngine{
 				return this.keys[keyCode];
 			}
 		};
-		this.Time=class{
+		this.Time=class Time{
 			constructor(){
 				this.delta=1/60;//in seconds note: (change in time)
 				this.start=this.real;//note: t.start = time when startLoop was called
@@ -281,7 +283,7 @@ class IOEngine{
 				this.start=endTime;
 			}
 		};
-		this.Fps=class{
+		this.Fps=class Fps{
 			constructor(){
 				this.fps=0;
 				this.fpsCount=0;
@@ -301,6 +303,44 @@ class IOEngine{
 						startTime= (new Date()).getTime();
 					}
 				},0.1);
+			}
+		};
+		this.AsyncLoop=class AsyncLoop{
+			updateOrder=[];
+			constructor(){
+				this.orderLength=1;
+				this.frameId=0;
+				this.i=0;
+				this.endLoop=false;
+			}
+			mainLoop(){
+				if(!this.endLoop){
+					this.orderLength=this.updateOrder.length;
+					for (this.i=0;this.i<this.orderLength&&this.i<this.updateOrder.length;this.i++) {
+						this.updateOrder[this.i].onUpdate();
+					}
+				}
+			}
+			async gameLoop(){
+				while(!this.endLoop){
+					let loopPromise=new Promise((resolve)=>{
+						this.frameId=window.requestAnimationFrame(()=>{
+							this.mainLoop();resolve();
+						});
+					});
+					await loopPromise;
+				}
+			}
+			start(){
+				this.endLoop=false;
+				this.gameLoop();//this.frameId=window.requestAnimationFrame(this.mainLoop);
+			}
+			end(){
+				window.cancelAnimationFrame(this.frameId);
+				this.endLoop=true;
+				window.requestAnimationFrame(()=>{
+					Draw.clear();
+				});
 			}
 		};
 	}

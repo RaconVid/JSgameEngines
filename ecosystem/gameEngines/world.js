@@ -1,30 +1,51 @@
 var world,World;
 {//TheHeydenBro's (clashofclans)
-	World=class World extends Function{//euclidian grid
-		constructor(worldSize=2,chunkDiamiter=100){
-			super();
+	let makingWorld=true;
+	World=class World{//euclidian grid
+		constructor(worldSize=10,chunkDiamiter=100){
 			this.worldSize=worldSize;
 			this.chunkDiamiter=chunkDiamiter;
 			this.plane=new Plane([]);//default chunk;
 			this.grid=[];
+			let finalSelf=makingWorld?World:this;
+			if(makingWorld)makingWorld=false;
 			for(let y=0;y<worldSize;y++){
 				this.grid[y]=[];
 				for(let x=0;x<worldSize;x++){
-					this.grid[y][x]=new Plane([],[x,y],chunkDiamiter);
+					this.grid[y][x]=new Plane([],[x,y],finalSelf);
 				}
 			}
 			this.chunk1=this.grid[worldSize>>1][worldSize>>1];
 		};
-		static makeEntity(entityRefObj,world=entityRefObj.world??this){
+		setSize(worldSize=this.worldSize,chunkDiamiter=this.chunkDiamiter){
+			this.grid??=[];
+			let finalSelf=makingWorld?World:this;
+			if(makingWorld)makingWorld=false;
+			for(let y=0;y<worldSize;y++){
+				this.grid[y]??=[];
+				for(let x=0;x<worldSize;x++){
+					this.grid[y][x]??=new Plane([],[x,y],finalSelf);
+				}
+			}
+			this.chunk1=this.grid[worldSize>>1][worldSize>>1];
+		};
+		static spawn(entity,world=entity.world??this){
+			return world.updateChunks(world.extendIntoEntity(entity));
+		};
+		static makeEntity(...args){return this.Entity.makeEntity(...args)}
+		static extendIntoEntity(entityRefObj,world=entityRefObj.world??this){
 			entityRefObj.coords??=[0,0];
 			entityRefObj.chunk??=world.getChunkFromCoords(entityRefObj.coords);
-			//entityRefObj.sizeInChunks??=2;
+			entityRefObj.size??=0;
 			entityRefObj.world??=world;
 			world.updateChunks(entityRefObj);
 			return entityRefObj;
-		}
-		static spawn(entity,world=entity.world??this){
-			return world.updateChunks(world.makeEntity(entity));
+		};
+		static getIndexFromCoords(coords,world=this){
+			let gridCoords=[
+				(((coords[0]/world.chunkDiamiter-world.worldSize/2)|0)%mod+mod)%mod,
+				(((coords[1]/world.chunkDiamiter-world.worldSize/2)|0)%mod+mod)%mod,
+			];return gridCoords;
 		};
 		static getChunkFromCoords(coords,world=this){
 			let mod=world.worldSize;
@@ -35,9 +56,11 @@ var world,World;
 			let chunk=world.grid[gridCoords[1]][gridCoords[0]];
 			return chunk;
 		};
-		static updateChunks(entity,coords=entity.coords,world=entity.world??this){
-			let chunk=world.getChunkFromCoords(coords);
-			if(chunk==entity.chunk){
+		static updateChunks(entity,refEntity=entity){
+			let world=refEntity.world??entity.world;
+			let chunk=world.getChunkFromCoords(refEntity.coords??entity.coords);
+			let gridSize=(((refEntity.size??entity.size)/world.chunkDiamiter)|0)+1;
+			if(chunk==(refEntity.chunk)){
 				return entity;
 			}
 			let c1=chunk.coords;
@@ -45,14 +68,14 @@ var world,World;
 			for(let i=0;i<entity[Plane.chunkListKey];i++){
 				entity[Plane.chunkListKey][i].delete(entity);
 			}
-			for(let i=-1;i<=1;i++){
-				for(let j=-1;j<=1;j++){
+			for(let i=-gridSize;i<=gridSize;i++){
+				for(let j=-gridSize;j<=gridSize;j++){
 					let c=Math.addVec2(chunk.coords,[i,j]);
 					world.grid[Math.max(0,c[1])]?.[Math.max(0,c[0])]?.add(entity);
-
 				}
 			}
-			entity.chunk=chunk;
+			refEntity.chunk=chunk;
+			//entity[World.Entity.key_chunk]=chunk;//to send to sprite.refEntity
 			return entity;
 		};
 		//get Chunk(){return Chunk;};
@@ -63,14 +86,16 @@ var world,World;
 		static Entity;
 		//static Portal;
 	};
+	World.constructor=World;
 	class Plane extends Array{//Set (cos Set is slow)
 		static chunkListKey=Symbol("chunkList");
-		constructor(list=[],coords){//scale=diamiter
+		constructor(list=[],coords,world=World){//scale=diamiter
 			super(list.length);
 			this.coords=coords;
 			for(let i=0;i<list.length;i++)this[i]=list[i];
-			this.idKey=Symbol("id");//"id from chunk"
+			this.idKey=Symbol("["+this.coords+"]id");//"id from chunk"
 			this.chunkKey=Symbol("chunkKey");
+			this.world=world;
 		}
 		get list(){return this;}
 		set list(val){this.setList(val)}
@@ -126,21 +151,42 @@ var world,World;
 			}
 		}
 	};World.Plane=Plane;
-	class Entity{
-		coords=[0,0];
-		constructor(getWorld=w=>w,parentObj=this,autoAttach=true){
-			this.world=getWorld(World);
-			this.parentObj=parentObj;
-			this.world.makeEntity(parentObj);
-			this.chunk=this.parentObj.world.chunk1;
+	class Entity{//is basicly RefEntity
+		static key_chunk=Symbol(".chunk");
+		//coords=[0,0];
+		static makeEntity(dataObj,parentObj){
+			let newObj=new this(dataObj.world??(w=>w),dataObj.obj??parentObj??dataObj,dataObj.attach??false);
+			let dataObj1=Object.defineProperties({},Object.getOwnPropertyDescriptors(dataObj));
+			delete dataObj1.world;
+			delete dataObj1.obj;
+			delete dataObj1.attach;
+			Object.defineProperties(newObj,Object.getOwnPropertyDescriptors(dataObj1));
+			return newObj
+		}
+		constructor(getWorld=w=>w,parentObj=this,autoAttach=false){
+			if(parentObj==this){}//if not a reference entity
+			this.world??=getWorld(World);
+			this.obj??=parentObj;
+			this.world.extendIntoEntity(parentObj);
+			this.chunk??=this.world.chunk1;
 			if(autoAttach){
 				this.attach();
 			}
 		}
-		update(){
-			this.chunk=this.parentObj.world.getChunkFromCoords(this.parentObj.coords);
-			this.world.updateChunks(this.parentObj,this.parentObj.coords,this.world);
-			//this.chunk=this.parentObj.chunk;			
+		get parentObj(){return this.obj;}
+		set parentObj(val){this.obj=val;}
+		get isAttached(){return this.chunk?(this.chunk.idKey in this):false;};
+		set isAttached(val){
+			if(val!=this.isAttached){
+				if(val)this.attach();
+				else this.detach();
+			}
+		}
+		onUpdate(){
+			this.update();
+		}
+		update(asd){if(asd)debugger;
+			this.world.updateChunks(this.obj,this);
 			return this;//for pipelineing
 		}
 		attach(){
@@ -149,20 +195,27 @@ var world,World;
 			return this;//for pipelineing
 		}
 		detach(){
-			this.parentObj[Plane.chunkListKey]??=[];
-			let list=this.parentObj[Plane.chunkListKey];
+			this.obj[Plane.chunkListKey]??=[];
+			let list=this.obj[Plane.chunkListKey];
 			for(let i=0,len=list.length;i<len;i++){
-				list[list.length-1].delete(this.parentObj);
+				list[list.length-1].delete(this.obj);
 			}
 			return this;//for pipelineing
 		}
+		bind(newParentObj){
+			this.obj=newParentObj;
+			this.chunk=this.world.getChunkFromCoords(this.newParentObj.coords);
+		}
 	};World.Entity=Entity;
 	Object.assign(World,new World());
-	({
-		makeEntity:World.prototype.makeEntity,
-		spawn:World.prototype.spawn,
-		getChunkFromCoords:World.prototype.getChunkFromCoords,
-		updateChunks:World.prototype.updateChunks,
-	});
+	let desc=Object.getOwnPropertyDescriptors(World);
+	Object.defineProperties(
+		Object.defineProperties(
+			World,
+			Object.getOwnPropertyDescriptors(
+				World.prototype
+			)
+		),desc
+	);//World is also an instance of itself
 }
 world=World;
