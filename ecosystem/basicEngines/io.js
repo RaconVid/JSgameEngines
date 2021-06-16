@@ -335,11 +335,13 @@ class IOEngine{
 				this.endLoop=false;
 				this.gameLoop();//this.frameId=window.requestAnimationFrame(this.mainLoop);
 			}
-			end(){
+			end(onEnd){
+				onEnd??=()=>{};
 				window.cancelAnimationFrame(this.frameId);
 				this.endLoop=true;
 				window.requestAnimationFrame(()=>{
 					Draw.clear();
+					onEnd();
 				});
 			}
 		};

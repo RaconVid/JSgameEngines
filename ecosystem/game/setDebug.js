@@ -1,15 +1,17 @@
 (function setDebug(){if(DEBUG_UI)if(1){
 	if(0){//frame by frame testing
 		let main1=new MainGame.UpdateLayer(...MainGame.updateOrder);
+		let t0=MainGame.time.real;
 		MainGame.updateOrder=[
-			new MainGame.UpdateScript(({}).a,()=>{
+			{onUpdate:()=>{
 				let t=MainGame.time.real;
-				if(Inputs.mouse.onDown){
+				if(Inputs.mouse.onDown){//t-t0>0.5){//
+					t0=t;
 					main1.onUpdate();
 				}
 				Inputs.mouse.onDown=false;
-			})
-		]
+			}}
+		];MainGame.start();
 	}
 	let a=1/60;//debug UI
 	if(1)new MainGame.UpdateScript(l=>l.draw,()=>{
