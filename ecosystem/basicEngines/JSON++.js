@@ -29,12 +29,12 @@ JSON.list=function deReference(object,debugVars=false){
 			if(currentTree[currentTree.length-1]=="toJSON"){
 				return value;
 			}
-			return true?"("+value+")":"FUNCTION";
+			return true?'('+value+')':'FUNCTION';
 		}
 		if(typeof value == "string"){
 			return JSON.stringify(value);
 		}
-		if(value === null)return "(null)";
+		if(value === null)return '(null)';
 		if(typeof value == "symbol"){
 			index=objs.indexOf(value);
 			if(index!=-1){
@@ -96,7 +96,7 @@ JSON.list=function deReference(object,debugVars=false){
 	//JSON.stringify(JSON.list(mainGame).refs).length
 	//JSON.list(mainGame).trees.map(v=>v.join(" ")).join("\n").length
 };
-JSON.parseList=function reReference(objectRefs){
+JSON.parseList=function reReference(objectRefs,debugVars=false){
 	let object=[];
 	for(let i=0;i<objectRefs.length;i++){
 		for(let value in objectRefs[i]){
@@ -128,5 +128,5 @@ JSON.parseList=function reReference(objectRefs){
 			}
 		}
 	}
-	return objectRefs[0];
+	return debugVars?objectRefs:objectRefs[0];
 }

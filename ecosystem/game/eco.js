@@ -19,21 +19,22 @@ var RelPos=class{};{({thisObj:true,a(){
 	let class1=class RelPos_class1 extends Array{//gyro-relative-position (node)
 		static curve=-1;
 		constructor(){
-			super([],[],[1]);//note: this=[[objA,objB...],[matA,matB...]];
-			this.name=(n++);
+			super([],[],[1,n++]);//note: this=[[objA,objB...],[matA,matB...]];
 			//(A->B) = A to B
 			//(A--B) = A join B
 			//moving uses (A->B)
 		}
 		//get set
+			get name(){return this[2][1];}
+			set name(val){this[2][1]=val;}
 			get mats(){return this[1];}
-			set mats(v){this[1]=v;}
+			set mats(val){this[1]=val;}
 			get mat(){return this[1][0];}
-			set mat(v){this[1][0]=v;}
+			set mat(val){this[1][0]=val;}
 			get layers(){return this[0];}
-			set layers(v){this[0]=v;}
+			set layers(val){this[0]=val;}
 			get layer(){return this[0][0];}
-			set layer(v){this[0][0]=v;}
+			set layer(val){this[0][0]=val;}
 		//
 		//join methods (A--B)
 			static goto(list,obj,mat_listToObj=null,curve=class1.curve){//return new list
@@ -57,7 +58,7 @@ var RelPos=class{};{({thisObj:true,a(){
 							minObjChain[i]=chain[i];
 						}
 					}
-					return n<1&&reps<1;
+					return n<4&&reps<1;
 				});
 				list[1][index]=mat;
 				if(minObj&& minObj instanceof Array){
@@ -86,15 +87,9 @@ var RelPos=class{};{({thisObj:true,a(){
 		//move pointers
 			static move(listA,obj,listB){//(A->O) => (B->O)
 				let indexA=this.getIndex(listA[0],obj);
-				if(indexA==-1){
-					throw"obj not found";
-					return;
-				}
+				if(indexA==-1){throw"obj not found";return;}
 				let indexB=this.getIndex(listA[0],listB);
-				if(indexB==-1){
-					throw"listB not found";
-					return;
-				}
+				if(indexB==-1){throw"listB not found";return;}
 				let mat=Math.Mat.mul(
 					listA[1][indexA],
 					Math.Mat.inverse(listA[1][indexB]),
@@ -205,28 +200,74 @@ var RelPos=class{};{({thisObj:true,a(){
 let forEachRelPos=RelPos.forEach.bind(RelPos);
 let fixGmat3=(mat,c=RelPos.curve)=>RelPos.fixGmat3(mat,c);
 var relpos=new RelPos();
-{
+{	
+	let makeRelPos=function(relposA=p,relPosRange=ranges[0],joinRange=ranges[1]){
+		let minDist=Infinity,dist,d1;//Math.tanh(Math.TAU/8)*8;
+		let layer=null;let found=false,found1=false;RelPos.forEach(relposA,(l,m,r,n)=>{
+			if(r>0||n>50)return false;
+			if(n==-1)return true;
+			if(l[2][0]==0)return false;
+			if((dist=Math.Gmat.len(m,RelPos.curve))<minDist){minDist=dist;d1=l;}
+			if(l==relposA.layer)return true;
+			else if(!found1&&Math.Gmat.len(m,RelPos.curve)<joinRange&&n>-1){
+				found1=true;//found=true;
+				RelPos.addJoin(relposA.layer,l,Math.Mat.mul(m,relposA.mat.inverse()));
+				//RelPos.goto(relposA.layer,relposA);
+			}//loga(l,l.name+":"+Math.Gmat.len(m))}
+
+			return true;
+		});
+		if(!found&&minDist>=relPosRange){
+			let newPos=new RelPos().addJoin(relposA.layer,relposA.mat);
+			RelPos.delJoin(relposA.layer,relposA);
+			newPos.addJoin(relposA,Math.Mat(3));
+			return true;
+		}
+		else return false;
+	}
+	const squareLen=Math.atanh(Math.TAU/8);
+	let ranges=[0,0.01,1*squareLen];
+	ranges[0]=ranges[2]-0.1;
 	let r1=relpos;
-	r1.addJoin(new RelPos(),Math.Gmat([2,0],RelPos.curve));
-	r1.addJoin(new RelPos(),Math.Gmat([-2,0],RelPos.curve));
-	r1.addJoin(new RelPos(),Math.Gmat([0,2],RelPos.curve));
-	r1.addJoin(new RelPos(),Math.Gmat([0,-2],RelPos.curve));
+	let p=new RelPos();
+	p[2][0]=0;//not anchored;
+	RelPos.addJoin(r1,p,Math.Mat(3));
+	let dir=0,dirs=[[1,0],[0,1],[-1,0],[0,-1]];
+	dirs=dirs.map(v=>v.map(v=>v*ranges[2]));
+	let state=0;
+	for(let i=0;i<0;i++){
+		let gMat=Math.Gmat(dirs[dir],RelPos.curve);
+		p.mat=p.mat.mul(gMat);
+		if(makeRelPos()){
+			if(state%3==0){dir++;}
+			else if(state%3==1){dir+=3;}
+			else if(state%3==2){dir+=4;}
+		}else{
+			//p.mat=p.mat.div(gMat);
+			if(state==0){dir+=3;}
+			else if(state==1){dir+=1;state=3;}
+			else if(state==3){dir+=1;state=0;}
+			//RelPos.goto(p.layer,p);
+		}
+		dir%=4;
+	}
 }
-var player1=new RelPos();player1[2][0]=0;relpos.addJoin(player1,Math.Gmat([0,-1],RelPos.curve));player1.name="p1";
-var player2=new RelPos();player2[2][0]=0;relpos.addJoin(player2,Math.Gmat([0,-1],RelPos.curve));player2.name="p2";
-relpos.moveJoin(player2,relpos[0][1]);
+var player1=new RelPos();player1[2][0]=0;relpos.addJoin(player1,Math.Gmat([0,-0],RelPos.curve));player1.name="p1";
+var player2=new RelPos();player2[2][0]=0;relpos.addJoin(player2,Math.Gmat([0,-0],RelPos.curve));player2.name="p2";
+//relpos.moveJoin(player2,relpos[0][1]);
 new Space.Sprite({
 	OnStart(){
 		this.attach();
 	},
 	...{
 		coords:[100,0],
-		size:20,
+		size:10,
 		drawScale:40,
 		speed:4,
+		turnSpeed:0.637,
 	},
 	scripts:{
-		mainUpdate:{attach:true,layer:l=>l.update[8],*script(layer,script){
+		mainUpdate:{attach:true,layer:l=>l.draw[7],*script(layer,script){
 			let speed=this.speed;
 			let processPlayer=(p)=>{const c=RelPos.curve;
 				let keys=Inputs.getKey("Keys"+["Arrow","WASD"][p]);
@@ -238,29 +279,43 @@ new Space.Sprite({
 					player.mat=fixGmat3(player.mat,c);
 					let mat=player.mat.mul(Math.Gmat(Math.scale(vec,-1),c));
 					mat=fixGmat3(mat);
-					player.addJoin(player.layer,mat);
+					RelPos.addJoin(player,player.layer,mat);
 					RelPos.goto(player.layer,player);
 					player.layer[1][player.layer[0].indexOf(player)];
 				}
-				let key=Inputs.getKey("Space");
+				RelPos.addJoin(player,player.layer,player.mat.rot((Inputs.getKey("KeyZ").down-Inputs.getKey("KeyX").down)*Math.TAU*this.turnSpeed*MainGame.time.delta,1,2));
+				let key=Inputs.getKey("KeyQ");
 				if(key.onDown&&p==0){
 					key.onDown=false;
-					let range=60/this.drawScale;
-					let layer=null;let found=false;RelPos.forEach(player,(l,m,r,n)=>{
-						if(r>0||n>200||found||(l[2][0]==0&& n!=-1))return false;//||l==player.layer
-						if(l==player.layer||n<2)return true;//Math.Gmat.len(m)<range;
-						if(Math.Gmat.len(m)<range){
-							found=true;console.log(l,l.name)
-							player.layer.addJoin(l,Math.Mat.mul(m,player.mat.inverse()));
-							RelPos.goto(player.layer,player);
-							return false;
-						}else{}//loga(l,l.name+":"+Math.Gmat.len(m))}
-						return true;
-					});
-					if(!found){
-						let newPos=new RelPos().addJoin(player.layer,player.mat);
-						player.layer.delJoin(player);
-						newPos.addJoin(player,Math.Mat(3));
+					let newPos=new RelPos().addJoin(player.layer,player.mat);
+					//newPos[2][0]=0;
+					RelPos.delJoin(player.layer,player);
+					RelPos.addJoin(newPos,player,Math.Mat(3));
+				}
+				if(p==0){
+					if(keys.down){
+						let joinRange=0.5,relPosRange=4;//60/this.drawScale;
+						let minDist=Infinity,dist,d1;//Math.tanh(Math.TAU/8)*8;
+						let layer=null;let found=false,found1=false;
+						RelPos.forEach(player,(l,m,r,n)=>{
+							if(r>0||n>50)return false;
+							if(n==-1)return true;
+							if(l[2][0]==0)return false;
+							if((dist=Math.Gmat.len(m,c))<minDist){minDist=dist;d1=l;}
+							if(l==player.layer)return true;
+							else if(!found1&&Math.Gmat.len(m,c)<joinRange&&n>0){
+								found1=true;//found=true;
+								RelPos.addJoin(player.layer,l,Math.Mat.mul(m,player.mat.inverse()));
+								//RelPos.goto(player.layer,player);
+							}//loga(l,l.name+":"+Math.Gmat.len(m))}
+
+							return true;
+						});
+						if(!found&&minDist>relPosRange){
+							let newPos=new RelPos().addJoin(player.layer,player.mat);
+							RelPos.delJoin(player.layer,player);
+							newPos.addJoin(player,Math.Mat(3));
+						}
 					}
 				}
 			};
@@ -277,9 +332,9 @@ new Space.Sprite({
 				forEachRelPos(player1,(obj,mat,reps,n,list)=>{
 					mats[n]=mat;
 					let v=Math.aGmat(mat,RelPos.curve).map(v=>v*scale);
-					if(n==0){
+					if(n>=0){
 						let v1=Math.aGmat(mats[n-1],RelPos.curve).map(v=>v*scale);
-						Draw.line(...v1,...v.map(v=>v+n*5),2,Draw.hslaColour(n/5,0.66,0.66,0.5));
+						Draw.line(...v1,...v.map(v=>v+n*0),2,Draw.hslaColour(n/Math.TAU/2,0.8,0.66,0.5));
 					}
 					//Draw.circle(v[0],v[1],3,"grey");
 					if(typeof obj.name=="number"){
@@ -287,7 +342,7 @@ new Space.Sprite({
 						//return n<5;
 					}
 					else Draw.Text({text:obj.name+":"+obj.layer.name,x:v[0],y:v[1]})();
-					return n<100&&reps<1;//return n==0;
+					return n<40&&reps<1;//return n==0;
 				});player1.dist??=[];
 				Draw.Text({text:Math.aGmat(player1.mat,RelPos.curve).map(v=>v.toFixed(2)),x:10,y:10})();
 				//Draw.circle(0,0,this.size,"#37FF3760");//
@@ -296,6 +351,28 @@ new Space.Sprite({
 		}},
 	},
 });
+world.saveGameStr=()=>JSON.stringify(JSON.list({relpos,player1,player2}));
+world.loadGameStr=(str)=>{
+	if(!str)return false;
+	let saveObj=JSON.parse(str);
+	saveObj=JSON.parseList(saveObj);
+	relpos=saveObj.relpos;//.map(v=>new RelPos());
+	player1=saveObj.player1;
+	player2=saveObj.player2;
+	forEachRelPos(relpos,(obj,mat,reps,n,list)=>{
+		for(let i=0;i<obj[1].length;i++){
+			obj[1][i]=Math.Mat(obj[1][i]);
+		}
+		Object.defineProperties(obj,Object.getOwnPropertyDescriptors(RelPos.prototype));
+		return reps<1;
+	});
+	return true;
+};
+world.saveName="hyperbolic world: save";
+world.saveName1=world.saveName+"1";
+world.saveGame=()=>localStorage.setItem(world.saveName1,world.saveGameStr());
+world.loadGame=()=>world.loadGameStr(localStorage.getItem(world.saveName1));
+//world.loadGame();
 importJavascriptFromSrc(
 	"game/setDebug.js"
 );MainGame.start();

@@ -185,7 +185,7 @@ var world,World;
 		onUpdate(){
 			this.update();
 		}
-		update(asd){if(asd)debugger;
+		update(){
 			this.world.updateChunks(this.obj,this);
 			return this;//for pipelineing
 		}

@@ -18,6 +18,7 @@
 		Draw.square(100,100,10,"#AA884040");
 		ctx.font="30px Arial";
 		ctx.fillStyle="#FFFFFFD0";
+		ctx.textAlign="left";
 		let b=MainGame.time.realDelta??0;
 		const m=0.001;
 		a=Math.abs(b-a)<m?b:a>b?a-m:a+m;

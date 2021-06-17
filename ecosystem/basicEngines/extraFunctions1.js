@@ -16,8 +16,17 @@ function importJavascriptFromSrc(...sources){
 	}
 	return scripts;
 };
+function classToFunction(classObj){
+	let newFunction=function(){
+		return new classObj(...args);
+	}
+	newFunction.name=classObj.name;
+	Object.defineProperties(newFunction,Object.getOwnPropertyDescriptors(class1));
+	newFunction.prototype.constructor=newFunction;
+	return newFunction;
+}
 importJavascriptFromSrc.baseSrc="";
+var globalEval=(exp)=>eval(exp);
 //importJavascriptFromSrc(
 //	"game/player1.js"
 //);
-var globalEval=(exp)=>eval(exp);
