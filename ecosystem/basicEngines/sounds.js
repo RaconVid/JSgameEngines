@@ -5,9 +5,8 @@ let Sounds=(function() {
     // object (e.g. returned by Audio).
 
     function play(sound) {
-	if (sound.ended) {
-	    // The sound has already been played, which means that we
-	    // can definitely play it.
+	if (sound.readyState == 6) {
+	    // The sound can be played through to the end.
 	    sound.play();
 	} else {
 	    myAudioElement.addEventListener("canplaythrough", event => {
