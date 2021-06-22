@@ -255,9 +255,13 @@ var relpos=new RelPos();
 var player1=new RelPos();player1[2][0]=0;relpos.addJoin(player1,Math.Gmat([0,-0],RelPos.curve));player1.name="p1";
 var player2=new RelPos();player2[2][0]=0;relpos.addJoin(player2,Math.Gmat([0,-0],RelPos.curve));player2.name="p2";
 //relpos.moveJoin(player2,relpos[0][1]);
-new Space.Sprite({
+var sprite1=new Space.Sprite({
 	OnStart(){
 		this.attach();
+		let curveScale=10;
+		//this.speed//*=curveScale;
+		//this.drawScale/=curveScale;
+		this.turnSpeed*=0.9999;
 	},
 	...{
 		coords:[100,0],
@@ -303,7 +307,7 @@ new Space.Sprite({
 							if(l[2][0]==0)return false;
 							if((dist=Math.Gmat.len(m,c))<minDist){minDist=dist;d1=l;}
 							if(l==player.layer)return true;
-							else if(!found1&&Math.Gmat.len(m,c)<joinRange&&n>0){
+							else if(!found1&&Math.Gmat.len(m,c)<joinRange&&n>=0){
 								found1=true;//found=true;
 								RelPos.addJoin(player.layer,l,Math.Mat.mul(m,player.mat.inverse()));
 								//RelPos.goto(player.layer,player);
@@ -372,8 +376,9 @@ world.saveName="hyperbolic world: save";
 world.saveName1=world.saveName+"1";
 world.saveGame=()=>localStorage.setItem(world.saveName1,world.saveGameStr());
 world.loadGame=()=>world.loadGameStr(localStorage.getItem(world.saveName1));
-//world.loadGame();
+world.loadGame();
 importJavascriptFromSrc(
-	"game/setDebug.js"
+	"game/setDebug.js",
+	"game/sim.js"
 );MainGame.start();
 }
