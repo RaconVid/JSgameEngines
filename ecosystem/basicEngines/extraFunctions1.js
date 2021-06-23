@@ -16,16 +16,40 @@ function importJavascriptFromSrc(...sources){
 	}
 	return scripts;
 };
+importJavascriptFromSrc.baseSrc="";
 function classToFunction(classObj){
-	let newFunction=function(){
+	let newFunction={[classObj.name](...args){
 		return new classObj(...args);
-	}
-	newFunction.name=classObj.name;
-	Object.defineProperties(newFunction,Object.getOwnPropertyDescriptors(class1));
+	}}[classObj.name];
+	//newFunction.name=classObj.name;//cant change name :(
+	Object.defineProperties(newFunction,Object.getOwnPropertyDescriptors(classObj));
 	newFunction.prototype.constructor=newFunction;
 	return newFunction;
-}
-importJavascriptFromSrc.baseSrc="";
+};
+function fastSet(arry){//not finished
+	//can only store objects.
+	this.array=arry;
+	this.indexSymbol=Symbol("index");
+	return 
+};fastSet.prototype={
+	...fastSet.prototype,
+	get set(){
+
+	},
+	add(item){
+		if(indexSymbol in item&&item[indexSymbol]!=-1){
+			item[indexSymbol]=this.array.length;
+			this.array.push(item);
+		}
+		return this;
+	},
+	clear(){
+		for(let i=0;i<this.array.length;i++){
+			
+		}
+	},
+	delete(){},
+};
 var globalEval=(exp)=>eval(exp);
 //importJavascriptFromSrc(
 //	"game/player1.js"
