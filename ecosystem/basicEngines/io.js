@@ -6,11 +6,11 @@ class IOEngine{
 		window.Draw.start();
 		window.Inputs=new this.Inputs(document.getElementById("canvas1"));
 		window.Inputs.start();
-		//window.GameLoopClass=new this.GameLoopClass();//replaced by 
+		window.AsyncLoop=this.AsyncLoop;
 		window.MainGame=new this.AsyncLoop();
+		window.Time=this.Time;
 		//window.fps=new this.Fps();
 		//window.fps.start();
-		window.Time=this.Time;
 		//Draw.canvasObj.width=640;
 		//Draw.canvasObj.height=360;
 		return this;
@@ -325,7 +325,8 @@ class IOEngine{
 				while(!this.endLoop){
 					let loopPromise=new Promise((resolve)=>{
 						this.frameId=window.requestAnimationFrame(()=>{
-							this.mainLoop();resolve();
+							this.mainLoop();
+							resolve();
 						});
 					});
 					await loopPromise;
