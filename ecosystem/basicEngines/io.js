@@ -28,31 +28,6 @@ class IOEngine{
 				this.center=[this.width/2,this.height/2];
 				if(Math.Vector2){this.center=new Math.Vector2(this.center);}
 			}
-			transform(pos){
-				ctx.transform(
-					pos.mat[0][0],
-					pos.mat[0][1],
-					pos.mat[1][0],
-					pos.mat[1][1],
-					pos.vec[0],
-					pos.vec[1],
-				);
-			}
-			//may not work with newer version
-			undoTransform(pos){//{mat,vec}
-				ctx.translate(
-					-pos.vec[0],
-					-pos.vec[1],
-				);
-				let det=pos.mat[0][0]*pos.mat[1][1]-pos.mat[1][0]*pos.mat[0][1];
-				ctx.transform(
-					pos.mat[0][0]/det,
-					-pos.mat[0][1]/det,
-					-pos.mat[1][0]/det,
-					pos.mat[1][1]/det,
-					0,0,
-				);
-			}
 			Text({x=0,y=0,text,font="sans-serif",size=10,color="white",align="center"}){
 				return function printText(){
 					ctx.font=size+"px "+font;
@@ -94,24 +69,13 @@ class IOEngine{
 			}
 			hexidecimal(decimal){
 				var hex=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
-				return(hex[Math.floor(decimal/16)]+hex[Math.floor(decimal)%16]);
+				return(hex[(decimal/16)|0]+hex[(decimal|0)%16]);
 			}
-			hslaColour(h,s,l,a){//0
-				return(
-				 	"hsla("
-					+Math.floor(360*h)+","
-					+Math.floor(100*s)+"%,"
-					+Math.floor(100*l)+"%,"
-					+a+")"
-				);
+			hslaColour(h,s,l,a){
+				return("hsla("+(360*h|0)+","+(100*s|0)+"%,"+(100*l|0)+"%,"+a+")");
 			}
-			hslColour(h,s,l){//0
-				return(
-				 	"hsl("
-					+Math.floor(360*h)+","
-					+Math.floor(100*s)+"%,"
-					+Math.floor(100*l)+"%)"
-				);
+			hslColour(h,s,l){
+				return("hsl("+(360*h|0)+","+(100*s|0)+"%,"+(100*l|0)+"%)");
 			}
 			start(){
 				document.body.style="margin:0"

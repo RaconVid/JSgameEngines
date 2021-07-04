@@ -240,11 +240,11 @@
 					//assume mat isn't reference
 					super(mat.length);
 					for(let i=0;i<mat.length;i++){
-						this[i]=mat[i];
-						//this[i]=new Array(mat[i].length);
-						//for(let j=0;j<mat[i].length;j++){
-						//	this[i][j]=mat[i][j];
-						//}
+						//this[i]=mat[i];
+						this[i]=[];//new Array(mat[i].length);
+						for(let j=0;j<mat[i].length;j++){
+							this[i][j]=mat[i][j];
+						}
 					}
 				}
 				else if(argsLength==1&&typeof length=='number'){
@@ -269,37 +269,76 @@
 			static determinant(matA){
 				if(matA.length==0)return 0;
 				if(matA.length==1&&matA[0].length==1)return matA[0][0];
-				return this.inverse_findDet(matA,this.inverse_findC(matA));
+				if(matA.length==2&&matA[0].length==2)return matA[0][0]*matA[1][1]-matA[0][1]*matA[1][0];
+
+				return this.inverse_findDet(matA,this.inverse_findC(matA,true));
 			}determinant(){return matClass.determinant(this);}
 			static inverse_findDet(matA,minorsC){//returns number
-				return minorsC[0].reduce((s,v,i)=>s+v*matA[0][i],0);
+				let det=0;
+				for(let i=0;i<minorsC[0].length;i++){
+					det+=minorsC[0][i]*matA[0][i];
+				}
+				//minorsC[0].reduce((s,v,i)=>s+v*matA[0][i],0);
+				return det;
 			}
 			static clone(mat){
 				return new this(mat);
 			}clone(){return matClass.clone(this);}
-			static inverse_findC(matA){//returns array
-				if(matA.length==1)return matA.map(v=>v.map(v=>v));
-				let minors=[];
+			static inverse_findC(matA,isForDet,fastMode=true){//returns array
+				if(fastMode){
+					if(matA.length==1){return matA;}//return matA.map(v=>v.map(v=>v));
+					else if(matA.length==2){return [[matA[1][1],-matA[0][1]],[-matA[1][0],matA[0][0]]];}
+					else if(matA.length==3){return isForDet?[[
+							(matA[1][1]*matA[2][2]-matA[1][2]*matA[2][1]),
+							-(matA[1][0]*matA[2][2]-matA[1][2]*matA[2][0]),
+							(matA[1][0]*matA[2][2]-matA[1][2]*matA[2][0]),
+						]]:[
+							[
+								(matA[1][1]*matA[2][2]-matA[1][2]*matA[2][1]),
+								-(matA[1][0]*matA[2][2]-matA[1][2]*matA[2][0]),
+								(matA[1][0]*matA[2][1]-matA[1][1]*matA[2][0]),
+							],[
+								-(matA[0][1]*matA[2][2]-matA[0][2]*matA[2][1]),
+								(matA[0][0]*matA[2][2]-matA[0][2]*matA[2][0]),
+								-(matA[0][0]*matA[2][1]-matA[0][1]*matA[2][0]),
+							],[
+								(matA[0][1]*matA[1][2]-matA[0][2]*matA[1][1]),
+								-(matA[0][0]*matA[1][2]-matA[0][2]*matA[1][0]),
+								(matA[0][0]*matA[1][1]-matA[0][1]*matA[1][0]),
+							],
+						];
+					}
+				}
+				let minors=[],minorMat=[];
+				for(let i=0;i<matA.length-1;i++){
+					minorMat[i]=[];
+					for(let j=0;j<matA[i].length-1;j++){
+						minorMat[i][j]=0;
+					}
+				}
+				let i,j,y1,x1,y2,x2;
 				for(let i=0;i<matA.length;i++){
 					minors[i]=[];
 					for(let j=0;j<matA[i].length;j++){
 						minors[i][j]=0;
-						let minorMat=[];//new this(0)
-						for(let y1=0;y1<matA.length;y1++){
+						for(let y1=0,y2=0;y1<matA.length;y1++){
 							if(y1==i)continue;
-							minorMat.push([]);
-							for(let x1=0;x1<matA[y1].length;x1++){
+							for(let x1=0,x2=0;x1<matA[y1].length;x1++){
 								if(x1==j)continue;
-								minorMat[minorMat.length-1].push(matA[y1][x1]);
-							}
+								minorMat[y2][x2]=matA[y1][x1];
+								x2++;
+							}y2++;
 						}
 						minors[i][j]=this.determinant(minorMat)*([1,-1][(i+j)%2]);
+					}
+					if(isForDet){//dont need to compute rest if just for determinant
+						break;
 					}
 				}
 				return minors;
 			}
-			static inverse(matA){
-				let ansMat=this.inverse_findC(matA);//+/- C
+			static inverse(matA,ans){
+				let ansMat=this.inverse_findC(matA,false);//+/- C
 				let det=this.inverse_findDet(matA,ansMat);
 				for(let i=0;i<matA.length;i++){//ansMat=C^T
 					for(let j=i;j<matA.length;j++){
@@ -315,12 +354,17 @@
 				return this.mul(matA,this.inverse(matB));
 			}div(mat){return matClass.div(this,mat)}
 			static mul(matA,matB){
+				//if(matA.length==3&&matA[0].length==3&&matB.length==3&&matB[0].length==3){
+				//	return (new this([[matA[0][0]*matB[0][0]+matA[0][1]*matB[1][0]+matA[0][2]*matB[2][0]],[],[]]));
+				//}if(matA.length==2&&matA[0].length==2&&matB.length==2&&matB[0].length==2){
+				//	return ;
+				//}
 				let ans=[];
-				if(typeof mat == "number"){//scalar
+				if(typeof matB == "number"){//scalar
 					for(let i=0;i<matA.length;i++){
 						ans[i]=[];
 						for(let j=0;j<matA[i].length;j++){
-							ans[i][j]=matA[i][j]*mat;
+							ans[i][j]=matA[i][j]*matB;
 						}
 					}
 				}
@@ -357,8 +401,41 @@
 		}
 		const matClass1_1=function Mat(){return new matClass(...arguments);}
 		const matClass1=Object.defineProperties(
-			function Mat(len1,len2){return new matClass(len1,len2,arguments.length);},
-		Object.getOwnPropertyDescriptors(matClass))
+			function Mat(len1,len2){
+				let mat=[];
+				if((this instanceof Mat)||1){
+					return new matClass(len1,len2,arguments.length)
+				}
+				else{
+					if(arguments.length==1 && typeof len1 =='object'){//mat([[1,0],[0,1]])
+						let oldMat=len1;
+						for(let i=0;i<oldMat.length;i++){
+							mat[i]=[];
+							for(let j=0;j<oldMat[i].length;j++){
+								mat[i][j]=oldMat[i][j];
+							}
+						}
+					}
+					else if(typeof len1=='number'){
+						if(arguments.length==1){
+							for(let i=0;i<len1;i++){
+								mat[i]=new Array(len1).fill(0);
+								mat[i][i]=1;
+							}
+						}
+						//new mat(a,b) => a by b matrix;
+						else if(arguments.length==2 && typeof len2=='number'){
+							for(let i=0;i<len1;i++){
+								mat[i]=new Array(len2).fill(0);
+								if(len2-1>=i)mat[i][i]=1;
+							}
+						}
+					}
+				}
+				return mat;
+			},
+			Object.getOwnPropertyDescriptors(matClass)
+		);
 		Math.Mat=matClass1;
 	}
 	let thisVal=this;

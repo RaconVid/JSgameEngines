@@ -181,7 +181,7 @@ var RelPos=class{};{({thisObj:true,a(){
 				}
 			}
 		};forEach(){return class1.forEach(this,...arguments)}
-		static fixGmat3(mat,c=this.curve){return Math.Mat(3).rot(Math.getAngle(Math.Mat.mul(mat,Math.Gmat(Math.aGmat(mat,c).map(v=>-v),c))[1],1,2),1,2).mul(Math.Gmat(Math.aGmat(mat,c),c));}
+		static fixGmat3(mat,c=this.curve){if(c==1)return mat;return Math.Mat(3).rot(Math.getAngle(Math.Mat.mul(mat,Math.Gmat(Math.aGmat(mat,c).map(v=>-v),c))[1],1,2),1,2).mul(Math.Gmat(Math.aGmat(mat,c),c));}
 	};
 	let function1=Object.defineProperties(function RelPos_function1(){
 		if(this instanceof function1){
@@ -324,6 +324,7 @@ var sprite1=new Space.Sprite({
 				}
 			};
 			while(true){
+				speed=this.speed;
 				processPlayer(0);
 				processPlayer(1);
 				yield;

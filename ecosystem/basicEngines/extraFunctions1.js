@@ -17,11 +17,11 @@ function importJavascriptFromSrc(...sources){
 	return scripts;
 };
 importJavascriptFromSrc.baseSrc="";
-function classToFunction(classObj){
-	let newFunction={[classObj.name](...args){
+function classToFunction(classObj,constructor){
+	constructor??=function(...args){
 		return new classObj(...args);
-	}}[classObj.name];
-	//newFunction.name=classObj.name;//cant change name :(
+	};
+	let newFunction={[classObj.name]:constructor}[classObj.name];
 	Object.defineProperties(newFunction,Object.getOwnPropertyDescriptors(classObj));
 	newFunction.prototype.constructor=newFunction;
 	return newFunction;
